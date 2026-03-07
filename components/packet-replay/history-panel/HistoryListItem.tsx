@@ -1,0 +1,97 @@
+import React from 'react';
+import { Tag, Typography } from 'antd';
+import { StarFilled, StarOutlined } from '@ant-design/icons';
+import type { CapturedPacket } from '@/types/packet';
+
+interface HistoryListItemProps {
+  packet: CapturedPacket;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onToggleStar: (id: string) => void;
+}
+
+/**
+ * 历史记录列表项
+ * 展示单条数据包的摘要信息
+ */
+export const HistoryListItem: React.FC<HistoryListItemProps> = ({
+  packet,
+  isSelected,
+  onSelect,
+  onToggleStar,
+}) => {
+  return (
+    <div
+      className={`
+        flex items-center px-2 py-1 cursor-pointer border-b border-gray-100
+        text-xs font-mono transition-colors duration-100
+        ${isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}
+      `}
+      onClick={() => onSelect(packet.id)}
+    >
+      {/* 星标按钮 */}
+      <span
+        className="mr-1.5 shrink-0 cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleStar(packet.id);
+        }}
+        style={{ color: packet.isStarred ? '#faad14' : '#d9d9d9', fontSize: 12 }}
+      >
+        {packet.isStarred ? <StarFilled /> : <StarOutlined />}
+      </span>
+
+      {/* 方法 */}
+      <Tag
+        color={getMethodColor(packet.request.method)}
+        style={{ fontSize: 10, lineHeight: '16px', marginRight: 4, padding: '0 4px' }}
+      >
+        {packet.request.method}
+      </Tag>
+
+      {/* 状态码 */}
+      <Typography.Text
+        type={getStatusType(packet.status)}
+        style={{ fontSize: 11, width: 28, textAlign: 'center', flexShrink: 0 }}
+      >
+        {packet.response?.status ?? '—'}
+      </Typography.Text>
+
+      {/* URL 路径 */}
+      <Typography.Text
+        ellipsis={{ tooltip: packet.request.url }}
+        className="flex-1 mx-1.5"
+        style={{ fontSize: 11 }}
+      >
+        {packet.host}{packet.path}
+      </Typography.Text>
+
+      {/* 耗时 */}
+      <Typography.Text type="secondary" style={{ fontSize: 10, flexShrink: 0 }}>
+        {packet.duration > 0 ? `${packet.duration}ms` : ''}
+      </Typography.Text>
+    </div>
+  );
+};
+
+function getMethodColor(method: string): string {
+  const colorMap: Record<string, string> = {
+    GET: 'blue',
+    POST: 'green',
+    PUT: 'orange',
+    DELETE: 'red',
+    PATCH: 'purple',
+  };
+  return colorMap[method] ?? 'default';
+}
+
+function getStatusType(status: string): 'success' | 'danger' | 'warning' | 'secondary' {
+  const typeMap: Record<string, 'success' | 'danger' | 'warning' | 'secondary'> = {
+    completed: 'success',
+    error: 'danger',
+    pending: 'warning',
+    timeout: 'warning',
+  };
+  return typeMap[status] ?? 'secondary';
+}
+
