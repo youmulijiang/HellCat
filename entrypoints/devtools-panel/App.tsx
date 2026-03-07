@@ -3,7 +3,10 @@ import { ConfigProvider, theme } from 'antd';
 import { SideNav } from '@/components/layout/SideNav';
 import { PacketReplayLayout } from '@/components/packet-replay/PacketReplayLayout';
 import { DataGeneratorLayout } from '@/components/data-generator/DataGeneratorLayout';
+import { DiffLayout } from '@/components/diff/DiffLayout';
+import { MiscLayout } from '@/components/misc/MiscLayout';
 import { PayloadStoreLayout } from '@/components/payload-store/PayloadStoreLayout';
+import { CodecLayout } from '@/components/codec/CodecLayout';
 
 /**
  * DevTools 面板入口组件
@@ -18,10 +21,16 @@ const App: React.FC = () => {
     switch (activeModule) {
       case 'packet-replay':
         return <PacketReplayLayout />;
+      case 'codec':
+        return <CodecLayout />;
       case 'payload-store':
         return <PayloadStoreLayout />;
       case 'data-generator':
         return <DataGeneratorLayout />;
+      case 'diff':
+        return <DiffLayout />;
+      case 'misc':
+        return <MiscLayout />;
       default:
         return (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">

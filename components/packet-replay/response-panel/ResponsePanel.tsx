@@ -11,7 +11,7 @@ const RESPONSE_TABS: ResponseViewTab[] = ['Pretty', 'Raw', 'Hex', 'Json', 'Previ
 
 /**
  * 响应面板
- * 展示选中数据包的响应详情
+ * 展示选中数据包的响应详情，支持编辑
  */
 export const ResponsePanel: React.FC = () => {
   const {
@@ -20,6 +20,8 @@ export const ResponsePanel: React.FC = () => {
     responseSearchKeyword,
     setResponseSearchKeyword,
     getSelectedPacket,
+    editedResponseRaw,
+    setEditedResponseRaw,
   } = usePacketStore();
 
   const selectedPacket = getSelectedPacket();
@@ -44,6 +46,12 @@ export const ResponsePanel: React.FC = () => {
     }
   };
 
+  const displayContent = editedResponseRaw ?? getContent();
+
+  const handleChange = (value: string) => {
+    setEditedResponseRaw(value);
+  };
+
   return (
     <div className="flex flex-col h-full bg-white">
       <PanelHeader title="RESPONSE" actions={<ResponseToolbar />} />
@@ -52,7 +60,12 @@ export const ResponsePanel: React.FC = () => {
         activeTab={responseViewTab}
         onTabChange={setResponseViewTab}
       />
-      <ContentViewer content={getContent()} viewType={responseViewTab} />
+      <ContentViewer
+        content={displayContent}
+        viewType={responseViewTab}
+        editable
+        onChange={handleChange}
+      />
       <SearchBar
         placeholder="Search in response..."
         value={responseSearchKeyword}

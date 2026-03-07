@@ -27,7 +27,33 @@ export const HistoryListItem: React.FC<HistoryListItemProps> = ({
   const isIntercepted = packet.status === 'intercepted';
   const isDropped = packet.status === 'dropped';
   const isForwarded = packet.status === 'forwarded';
+  /** 构建悬浮提示内容 */
+  const tooltipContent = (
+    <div style={{ maxWidth: 480, wordBreak: 'break-all', fontSize: 12, lineHeight: 1.6 }}>
+      <div><strong>URL:</strong> {packet.request.url.length > 50 ? `${packet.request.url.slice(0, 50)}...` : packet.request.url}</div>
+      <div><strong>Method:</strong> {packet.request.method}</div>
+      {packet.response && (
+        <div><strong>Status:</strong> {packet.response.status} {packet.response.statusText}</div>
+      )}
+      {packet.duration > 0 && (
+        <div><strong>Duration:</strong> {packet.duration}ms</div>
+      )}
+      {packet.response?.contentType && (
+        <div><strong>Content-Type:</strong> {packet.response.contentType}</div>
+      )}
+      {packet.comment && (
+        <div><strong>Comment:</strong> {packet.comment}</div>
+      )}
+    </div>
+  );
+
   return (
+    <Tooltip
+      title={tooltipContent}
+      placement="right"
+      mouseEnterDelay={0.5}
+      overlayStyle={{ maxWidth: 500 }}
+    >
     <div
       className={`
         flex items-center px-2 py-1 cursor-pointer border-b border-gray-100
@@ -83,7 +109,7 @@ export const HistoryListItem: React.FC<HistoryListItemProps> = ({
 
       {/* URL 路径 */}
       <Typography.Text
-        ellipsis={{ tooltip: packet.request.url }}
+        ellipsis
         className="flex-1 mx-1.5"
         style={{ fontSize: 11 }}
       >
@@ -118,6 +144,7 @@ export const HistoryListItem: React.FC<HistoryListItemProps> = ({
         </Typography.Text>
       )}
     </div>
+    </Tooltip>
   );
 };
 

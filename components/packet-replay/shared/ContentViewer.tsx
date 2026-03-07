@@ -3,16 +3,40 @@ import React from 'react';
 interface ContentViewerProps {
   content: string;
   viewType: string;
+  /** 是否可编辑 */
+  editable?: boolean;
+  /** 编辑回调 */
+  onChange?: (value: string) => void;
 }
 
 /**
  * 内容查看器组件
  * 根据视图类型（Pretty/Raw/Hex/Json/Preview）展示内容
+ * 支持编辑模式：editable=true 时渲染 textarea
  */
 export const ContentViewer: React.FC<ContentViewerProps> = ({
   content,
   viewType,
+  editable = false,
+  onChange,
 }) => {
+  // Hex / Preview 视图不支持编辑
+  const isEditable = editable && viewType !== 'Hex' && viewType !== 'Preview';
+
+  if (isEditable) {
+    return (
+      <div className="flex-1 overflow-hidden p-0 bg-white">
+        <textarea
+          className="w-full h-full resize-none border-none outline-none p-2
+            text-xs font-mono leading-5 text-gray-700 bg-white"
+          value={content}
+          onChange={(e) => onChange?.(e.target.value)}
+          spellCheck={false}
+        />
+      </div>
+    );
+  }
+
   const renderContent = () => {
     if (!content) {
       return (

@@ -14,7 +14,7 @@ const MIN_PANEL_WIDTH = 150;
  */
 export const PacketReplayLayout: React.FC = () => {
   // 初始化网络捕获 & 拦截
-  const { forwardRequest, dropRequest } = useNetworkCapture();
+  const { forwardRequest, dropRequest, sendRequest } = useNetworkCapture();
 
   const [historyWidth, setHistoryWidth] = useState(240);
   const [requestWidthRatio, setRequestWidthRatio] = useState(0.5);
@@ -87,7 +87,7 @@ export const PacketReplayLayout: React.FC = () => {
           className="overflow-hidden border-r border-gray-200"
           style={{ width: `${requestWidthRatio * 100}%` }}
         >
-          <RequestPanel />
+          <RequestPanel onSend={sendRequest} />
         </div>
 
         {/* Request | Response 分隔条 */}

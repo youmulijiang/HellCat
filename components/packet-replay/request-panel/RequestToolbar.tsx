@@ -11,12 +11,17 @@ import {
 } from '@ant-design/icons';
 import { usePacketStore } from '@/stores/usePacketStore';
 
+interface RequestToolbarProps {
+  onSend?: () => void;
+}
+
 /**
  * 请求面板工具栏
  * 包含编辑操作、HTTPS 切换、Send 按钮等
  */
-export const RequestToolbar: React.FC = () => {
-  const { useHttps, toggleHttps } = usePacketStore();
+export const RequestToolbar: React.FC<RequestToolbarProps> = ({ onSend }) => {
+  const { useHttps, toggleHttps, getSelectedPacket } = usePacketStore();
+  const selectedPacket = getSelectedPacket();
 
   const editActions = [
     { icon: <PlusOutlined />, title: 'Add parameter' },
@@ -61,6 +66,8 @@ export const RequestToolbar: React.FC = () => {
         size="small"
         icon={<SendOutlined />}
         className="ml-auto"
+        disabled={!selectedPacket}
+        onClick={onSend}
       >
         Send
       </Button>

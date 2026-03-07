@@ -8,6 +8,9 @@ import {
   SettingOutlined,
   CodeOutlined,
   ExperimentOutlined,
+  DiffOutlined,
+  ToolOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 
 /** 导航模块定义 */
@@ -20,10 +23,13 @@ interface NavModule {
 /** 可用模块列表 */
 const NAV_MODULES: NavModule[] = [
   { key: 'packet-replay', label: '抓包/重放', icon: <SendOutlined /> },
+  { key: 'codec', label: '编码/加密', icon: <LockOutlined /> },
   { key: 'vulnerability', label: '漏洞扫描', icon: <BugOutlined /> },
   { key: 'api-test', label: 'API 测试', icon: <ApiOutlined /> },
   { key: 'payload-store', label: 'Payload 存储', icon: <CodeOutlined /> },
   { key: 'data-generator', label: '数据生成', icon: <ExperimentOutlined /> },
+  { key: 'diff', label: 'Diff 比对', icon: <DiffOutlined /> },
+  { key: 'misc', label: '杂项工具', icon: <ToolOutlined /> },
   { key: 'data-store', label: '数据存储', icon: <DatabaseOutlined /> },
   { key: 'settings', label: '设置', icon: <SettingOutlined /> },
 ];

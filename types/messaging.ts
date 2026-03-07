@@ -16,10 +16,20 @@ export interface StopInterceptMessage {
   tabId: number;
 }
 
-/** 放行被拦截的请求 */
+/** 放行被拦截的请求（原样放行） */
 export interface ForwardRequestMessage {
   type: 'FORWARD_REQUEST';
   requestId: string;
+}
+
+/** 放行被拦截的请求（带修改内容） */
+export interface ForwardModifiedRequestMessage {
+  type: 'FORWARD_MODIFIED_REQUEST';
+  requestId: string;
+  method: string;
+  url: string;
+  headers: { name: string; value: string }[];
+  body?: string;
 }
 
 /** 丢弃被拦截的请求 */
@@ -28,12 +38,25 @@ export interface DropRequestMessage {
   requestId: string;
 }
 
+/** 重放/发送请求 */
+export interface SendRequestMessage {
+  type: 'SEND_REQUEST';
+  /** 客户端生成的唯一 ID，用于关联响应 */
+  packetId: string;
+  method: string;
+  url: string;
+  headers: { name: string; value: string }[];
+  body?: string;
+}
+
 /** 所有从 DevTools → Background 的消息 */
 export type DevToolsToBackgroundMessage =
   | StartInterceptMessage
   | StopInterceptMessage
   | ForwardRequestMessage
-  | DropRequestMessage;
+  | ForwardModifiedRequestMessage
+  | DropRequestMessage
+  | SendRequestMessage;
 
 /**
  * Background → DevTools 面板 消息
@@ -62,8 +85,28 @@ export interface InterceptStatusMessage {
   tabId: number;
 }
 
+/** 请求重放响应结果 */
+export interface SendResponseMessage {
+  type: 'SEND_RESPONSE';
+  packetId: string;
+  status: number;
+  statusText: string;
+  headers: { name: string; value: string }[];
+  body: string;
+  duration: number;
+}
+
+/** 请求重放失败 */
+export interface SendErrorMessage {
+  type: 'SEND_ERROR';
+  packetId: string;
+  error: string;
+}
+
 /** 所有从 Background → DevTools 的消息 */
 export type BackgroundToDevToolsMessage =
   | RequestInterceptedMessage
-  | InterceptStatusMessage;
+  | InterceptStatusMessage
+  | SendResponseMessage
+  | SendErrorMessage;
 

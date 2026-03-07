@@ -164,7 +164,22 @@ export function useNetworkCapture() {
     portRef.current = port;
 
     port.onMessage.addListener((msg: BackgroundToDevToolsMessage) => {
-      if (msg.type === 'REQUEST_INTERCEPTED') {
+      if (msg.type === 'SEND_RESPONSE') {
+        const store = usePacketStore.getState();
+        store.updatePacketResponse(msg.packetId, {
+          status: msg.status,
+          statusText: msg.statusText,
+          httpVersion: 'HTTP/1.1',
+          headers: msg.headers,
+          body: msg.body,
+          contentType:
+            msg.headers.find((h) => h.name.toLowerCase() === 'content-type')?.value ?? '',
+          bodySize: msg.body.length,
+        });
+      } else if (msg.type === 'SEND_ERROR') {
+        const store = usePacketStore.getState();
+        store.updatePacketStatus(msg.packetId, 'error');
+      } else if (msg.type === 'REQUEST_INTERCEPTED') {
         const { data } = msg;
         const url = safeParseUrl(data.url);
         const host = url?.host ?? '';
@@ -225,18 +240,38 @@ export function useNetworkCapture() {
     }
   }, [isIntercepting]);
 
-  /** 放行被拦截的请求 */
+  /** 放行被拦截的请求（如果有编辑内容则带修改转发） */
   const forwardRequest = useCallback((packetId: string) => {
     const store = usePacketStore.getState();
     const packet = store.packets.find((p) => p.id === packetId);
     if (!packet?.networkRequestId || !portRef.current) return;
 
-    portRef.current.postMessage({
-      type: 'FORWARD_REQUEST',
-      requestId: packet.networkRequestId,
-    } satisfies DevToolsToBackgroundMessage);
+    // 先应用编辑内容
+    store.applyEditedRequest();
+    // 重新获取最新的 packet（可能已被 applyEditedRequest 更新）
+    const updatedPacket = usePacketStore.getState().packets.find((p) => p.id === packetId);
+    const req = updatedPacket?.request ?? packet.request;
+
+    const hasEdited = store.editedRequestRaw !== null;
+
+    if (hasEdited) {
+      portRef.current.postMessage({
+        type: 'FORWARD_MODIFIED_REQUEST',
+        requestId: packet.networkRequestId,
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+        body: req.body || undefined,
+      } satisfies DevToolsToBackgroundMessage);
+    } else {
+      portRef.current.postMessage({
+        type: 'FORWARD_REQUEST',
+        requestId: packet.networkRequestId,
+      } satisfies DevToolsToBackgroundMessage);
+    }
 
     updatePacketStatus(packetId, 'forwarded');
+    store.setEditedRequestRaw(null);
   }, [updatePacketStatus]);
 
   /** 丢弃被拦截的请求 */
@@ -253,6 +288,50 @@ export function useNetworkCapture() {
     updatePacketStatus(packetId, 'dropped');
   }, [updatePacketStatus]);
 
-  return { forwardRequest, dropRequest };
+  /** 重放/发送请求（使用编辑后的内容） */
+  const sendRequest = useCallback(() => {
+    const store = usePacketStore.getState();
+    const packet = store.getSelectedPacket();
+    if (!packet || !portRef.current) return;
+
+    // 先应用编辑内容到 packet
+    store.applyEditedRequest();
+    const updatedPacket = usePacketStore.getState().getSelectedPacket();
+    const req = updatedPacket?.request ?? packet.request;
+
+    // 创建一个新数据包用于接收重放结果
+    const newId = nanoid();
+    const url = safeParseUrl(req.url);
+    const host = url?.host ?? '';
+    const path = url ? `${url.pathname}${url.search}` : req.url;
+
+    const newPacket: CapturedPacket = {
+      id: newId,
+      timestamp: Date.now(),
+      host,
+      path,
+      request: { ...req },
+      response: null,
+      status: 'pending',
+      duration: 0,
+      isStarred: false,
+      isHighlighted: false,
+      comment: '[Replay]',
+    };
+
+    addPacket(newPacket);
+    store.selectPacket(newId);
+
+    portRef.current.postMessage({
+      type: 'SEND_REQUEST',
+      packetId: newId,
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      body: req.body || undefined,
+    } satisfies DevToolsToBackgroundMessage);
+  }, [addPacket]);
+
+  return { forwardRequest, dropRequest, sendRequest };
 }
 

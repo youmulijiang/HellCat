@@ -9,17 +9,23 @@ import type { RequestViewTab } from '@/types/packet';
 
 const REQUEST_TABS: RequestViewTab[] = ['Pretty', 'Raw', 'Hex'];
 
+interface RequestPanelProps {
+  onSend?: () => void;
+}
+
 /**
  * 请求面板
- * 展示选中数据包的请求详情
+ * 展示选中数据包的请求详情，支持编辑
  */
-export const RequestPanel: React.FC = () => {
+export const RequestPanel: React.FC<RequestPanelProps> = ({ onSend }) => {
   const {
     requestViewTab,
     setRequestViewTab,
     requestSearchKeyword,
     setRequestSearchKeyword,
     getSelectedPacket,
+    editedRequestRaw,
+    setEditedRequestRaw,
   } = usePacketStore();
 
   const selectedPacket = getSelectedPacket();
@@ -40,16 +46,29 @@ export const RequestPanel: React.FC = () => {
     }
   };
 
+  // 显示内容：优先使用编辑态文本，否则使用格式化后的原始内容
+  const displayContent = editedRequestRaw ?? getContent();
+
+  /** 编辑回调：首次编辑时初始化编辑态 */
+  const handleChange = (value: string) => {
+    setEditedRequestRaw(value);
+  };
+
   return (
     <div className="flex flex-col h-full bg-white">
       <PanelHeader title="REQUEST" />
-      <RequestToolbar />
+      <RequestToolbar onSend={onSend} />
       <ContentTabs
         tabs={REQUEST_TABS}
         activeTab={requestViewTab}
         onTabChange={setRequestViewTab}
       />
-      <ContentViewer content={getContent()} viewType={requestViewTab} />
+      <ContentViewer
+        content={displayContent}
+        viewType={requestViewTab}
+        editable
+        onChange={handleChange}
+      />
       <SearchBar
         placeholder="Search in request..."
         value={requestSearchKeyword}

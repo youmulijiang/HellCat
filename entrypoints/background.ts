@@ -11,12 +11,12 @@ export default defineBackground(() => {
   const interceptedTabs = new Set<number>();
 
   /** 记录每个 tab 关联的 devtools port（用于向面板发消息） */
-  const devtoolsPorts = new Map<number, chrome.runtime.Port>();
+  const devtoolsPorts = new Map<number, Browser.runtime.Port>();
 
   /**
    * 处理 DevTools 面板的长连接
    */
-  chrome.runtime.onConnect.addListener((port) => {
+  browser.runtime.onConnect.addListener((port) => {
     if (port.name !== 'hellcat-devtools') return;
 
     let connectedTabId: number | null = null;
@@ -37,8 +37,16 @@ export default defineBackground(() => {
           forwardRequest(msg.requestId);
           break;
 
+        case 'FORWARD_MODIFIED_REQUEST':
+          forwardModifiedRequest(msg.requestId, msg.method, msg.url, msg.headers, msg.body);
+          break;
+
         case 'DROP_REQUEST':
           dropRequest(msg.requestId);
+          break;
+
+        case 'SEND_REQUEST':
+          sendRequest(msg, port);
           break;
       }
     });
@@ -63,8 +71,8 @@ export default defineBackground(() => {
     if (interceptedTabs.has(tabId)) return;
 
     try {
-      await chrome.debugger.attach({ tabId }, '1.3');
-      await chrome.debugger.sendCommand({ tabId }, 'Fetch.enable', {
+      await browser.debugger.attach({ tabId }, '1.3');
+      await browser.debugger.sendCommand({ tabId }, 'Fetch.enable', {
         patterns: [{ urlPattern: '*', requestStage: 'Request' }],
       });
       interceptedTabs.add(tabId);
@@ -88,7 +96,7 @@ export default defineBackground(() => {
       for (const [reqId, info] of pausedRequests.entries()) {
         if (info.tabId === tabId) {
           try {
-            await chrome.debugger.sendCommand({ tabId }, 'Fetch.continueRequest', {
+            await browser.debugger.sendCommand({ tabId }, 'Fetch.continueRequest', {
               requestId: reqId,
             });
           } catch { /* ignore */ }
@@ -96,8 +104,8 @@ export default defineBackground(() => {
         }
       }
 
-      await chrome.debugger.sendCommand({ tabId }, 'Fetch.disable');
-      await chrome.debugger.detach({ tabId });
+      await browser.debugger.sendCommand({ tabId }, 'Fetch.disable');
+      await browser.debugger.detach({ tabId });
       interceptedTabs.delete(tabId);
       console.log(`[Hellcat] Intercepting disabled for tab ${tabId}`);
 
@@ -116,11 +124,40 @@ export default defineBackground(() => {
     if (!info) return;
 
     try {
-      await chrome.debugger.sendCommand({ tabId: info.tabId }, 'Fetch.continueRequest', {
+      await browser.debugger.sendCommand({ tabId: info.tabId }, 'Fetch.continueRequest', {
         requestId,
       });
     } catch (err) {
       console.error(`[Hellcat] Failed to forward request ${requestId}:`, err);
+    }
+    pausedRequests.delete(requestId);
+  }
+
+  /**
+   * 放行被拦截的请求（带修改内容）
+   * 使用 Fetch.continueRequest 传入修改后的 method/url/headers/postData
+   */
+  async function forwardModifiedRequest(
+    requestId: string,
+    method: string,
+    url: string,
+    headers: { name: string; value: string }[],
+    body?: string,
+  ) {
+    const info = pausedRequests.get(requestId);
+    if (!info) return;
+
+    try {
+      const cdpHeaders = headers.map((h) => ({ name: h.name, value: h.value }));
+      await browser.debugger.sendCommand({ tabId: info.tabId }, 'Fetch.continueRequest', {
+        requestId,
+        method,
+        url,
+        headers: cdpHeaders,
+        postData: body ? btoa(body) : undefined,
+      });
+    } catch (err) {
+      console.error(`[Hellcat] Failed to forward modified request ${requestId}:`, err);
     }
     pausedRequests.delete(requestId);
   }
@@ -133,7 +170,7 @@ export default defineBackground(() => {
     if (!info) return;
 
     try {
-      await chrome.debugger.sendCommand({ tabId: info.tabId }, 'Fetch.failRequest', {
+      await browser.debugger.sendCommand({ tabId: info.tabId }, 'Fetch.failRequest', {
         requestId,
         errorReason: 'BlockedByClient',
       });
@@ -144,9 +181,63 @@ export default defineBackground(() => {
   }
 
   /**
+   * 重放/发送请求：使用 fetch 发起请求并将响应返回给 DevTools 面板
+   */
+  async function sendRequest(
+    msg: import('@/types/messaging').SendRequestMessage,
+    port: Browser.runtime.Port
+  ) {
+    const startTime = Date.now();
+    try {
+      // 构造 headers
+      const headers = new Headers();
+      for (const h of msg.headers) {
+        // 跳过浏览器自动管理的 headers
+        const lower = h.name.toLowerCase();
+        if (['host', 'connection', 'content-length'].includes(lower)) continue;
+        try {
+          headers.set(h.name, h.value);
+        } catch { /* skip invalid headers */ }
+      }
+
+      const resp = await fetch(msg.url, {
+        method: msg.method,
+        headers,
+        body: ['GET', 'HEAD'].includes(msg.method.toUpperCase()) ? undefined : (msg.body || undefined),
+      });
+
+      const duration = Date.now() - startTime;
+
+      // 提取响应 headers
+      const respHeaders: { name: string; value: string }[] = [];
+      resp.headers.forEach((value, name) => {
+        respHeaders.push({ name, value });
+      });
+
+      const body = await resp.text();
+
+      port.postMessage({
+        type: 'SEND_RESPONSE',
+        packetId: msg.packetId,
+        status: resp.status,
+        statusText: resp.statusText,
+        headers: respHeaders,
+        body,
+        duration,
+      });
+    } catch (err) {
+      port.postMessage({
+        type: 'SEND_ERROR',
+        packetId: msg.packetId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  /**
    * 监听 CDP 事件
    */
-  chrome.debugger.onEvent.addListener((source, method, params) => {
+  browser.debugger.onEvent.addListener((source, method, params) => {
     if (method !== 'Fetch.requestPaused' || !source.tabId) return;
 
     const tabId = source.tabId;
@@ -188,7 +279,7 @@ export default defineBackground(() => {
   /**
    * 监听 debugger 被 detach（例如用户手动关闭）
    */
-  chrome.debugger.onDetach.addListener((source) => {
+  browser.debugger.onDetach.addListener((source) => {
     if (source.tabId) {
       interceptedTabs.delete(source.tabId);
       // 清理该 tab 的暂停请求

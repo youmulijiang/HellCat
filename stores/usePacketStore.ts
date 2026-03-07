@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import type {
   CapturedPacket,
+  RequestData,
   ResponseData,
   RequestViewTab,
   ResponseViewTab,
   HistoryFilterType,
+  HttpMethod,
 } from '@/types/packet';
 
 interface PacketStoreState {
@@ -32,6 +34,10 @@ interface PacketStoreState {
   isCapturing: boolean;
   /** 是否开启拦截模式 */
   isIntercepting: boolean;
+  /** 编辑中的请求原始文本（null 表示未编辑） */
+  editedRequestRaw: string | null;
+  /** 编辑中的响应原始文本（null 表示未编辑） */
+  editedResponseRaw: string | null;
 }
 
 interface PacketStoreActions {
@@ -71,6 +77,14 @@ interface PacketStoreActions {
   updatePacketStatus: (id: string, status: import('@/types/packet').PacketStatus) => void;
   /** 获取所有被拦截（暂停中）的数据包 */
   getInterceptedPackets: () => CapturedPacket[];
+  /** 设置编辑中的请求原始文本 */
+  setEditedRequestRaw: (raw: string | null) => void;
+  /** 设置编辑中的响应原始文本 */
+  setEditedResponseRaw: (raw: string | null) => void;
+  /** 将编辑后的请求原始文本解析并应用到选中数据包 */
+  applyEditedRequest: () => void;
+  /** 将编辑后的响应原始文本解析并应用到选中数据包 */
+  applyEditedResponse: () => void;
 }
 
 export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set, get) => ({
@@ -86,6 +100,8 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
   isForwarding: false,
   isCapturing: true,
   isIntercepting: false,
+  editedRequestRaw: null,
+  editedResponseRaw: null,
 
   addPacket: (packet) =>
     set((state) => ({ packets: [...state.packets, packet] })),
@@ -100,7 +116,7 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
     set({ packets: [], selectedPacketId: null }),
 
   selectPacket: (id) =>
-    set({ selectedPacketId: id }),
+    set({ selectedPacketId: id, editedRequestRaw: null, editedResponseRaw: null }),
 
   toggleStarPacket: (id) =>
     set((state) => ({
@@ -158,5 +174,120 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
   getInterceptedPackets: () => {
     return get().packets.filter((p) => p.status === 'intercepted');
   },
+
+  setEditedRequestRaw: (raw) =>
+    set({ editedRequestRaw: raw }),
+
+  setEditedResponseRaw: (raw) =>
+    set({ editedResponseRaw: raw }),
+
+  applyEditedRequest: () => {
+    const { editedRequestRaw, selectedPacketId, packets } = get();
+    if (!editedRequestRaw || !selectedPacketId) return;
+    const parsed = parseRawRequest(editedRequestRaw);
+    if (!parsed) return;
+    set({
+      packets: packets.map((p) =>
+        p.id === selectedPacketId ? { ...p, request: parsed } : p
+      ),
+    });
+  },
+
+  applyEditedResponse: () => {
+    const { editedResponseRaw, selectedPacketId, packets } = get();
+    if (!editedResponseRaw || !selectedPacketId) return;
+    const parsed = parseRawResponse(editedResponseRaw);
+    if (!parsed) return;
+    set({
+      packets: packets.map((p) =>
+        p.id === selectedPacketId ? { ...p, response: parsed } : p
+      ),
+    });
+  },
 }));
+
+/**
+ * 解析原始请求文本为 RequestData
+ * 格式: METHOD PATH HTTP/x.x\nHeader: Value\n...\n\nbody
+ */
+function parseRawRequest(raw: string): RequestData | null {
+  try {
+    const [headerSection, ...bodyParts] = raw.split('\n\n');
+    const body = bodyParts.join('\n\n');
+    const lines = headerSection.split('\n');
+    if (lines.length === 0) return null;
+
+    // 解析请求行
+    const requestLine = lines[0];
+    const parts = requestLine.split(' ');
+    const method = (parts[0] || 'GET').toUpperCase() as HttpMethod;
+    const pathPart = parts[1] || '/';
+    const httpVersion = parts[2] || 'HTTP/1.1';
+
+    // 解析 headers
+    const headers: { name: string; value: string }[] = [];
+    let host = '';
+    for (let i = 1; i < lines.length; i++) {
+      const colonIdx = lines[i].indexOf(':');
+      if (colonIdx === -1) continue;
+      const name = lines[i].substring(0, colonIdx).trim();
+      const value = lines[i].substring(colonIdx + 1).trim();
+      headers.push({ name, value });
+      if (name.toLowerCase() === 'host') host = value;
+    }
+
+    // 重建完整 URL
+    const scheme = 'https';
+    const url = host ? `${scheme}://${host}${pathPart}` : pathPart;
+
+    // 解析 queryString
+    const queryString: { name: string; value: string }[] = [];
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.forEach((v, k) => queryString.push({ name: k, value: v }));
+    } catch { /* ignore */ }
+
+    const contentType = headers.find((h) => h.name.toLowerCase() === 'content-type')?.value ?? '';
+
+    return { method, url, httpVersion, headers, queryString, body, contentType };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 解析原始响应文本为 ResponseData
+ * 格式: HTTP/x.x STATUS TEXT\nHeader: Value\n...\n\nbody
+ */
+function parseRawResponse(raw: string): ResponseData | null {
+  try {
+    const [headerSection, ...bodyParts] = raw.split('\n\n');
+    const body = bodyParts.join('\n\n');
+    const lines = headerSection.split('\n');
+    if (lines.length === 0) return null;
+
+    // 解析状态行
+    const statusLine = lines[0];
+    const parts = statusLine.split(' ');
+    const httpVersion = parts[0] || 'HTTP/1.1';
+    const status = parseInt(parts[1] || '200', 10);
+    const statusText = parts.slice(2).join(' ') || 'OK';
+
+    // 解析 headers
+    const headers: { name: string; value: string }[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const colonIdx = lines[i].indexOf(':');
+      if (colonIdx === -1) continue;
+      const name = lines[i].substring(0, colonIdx).trim();
+      const value = lines[i].substring(colonIdx + 1).trim();
+      headers.push({ name, value });
+    }
+
+    const contentType = headers.find((h) => h.name.toLowerCase() === 'content-type')?.value ?? '';
+
+    return { status, statusText, httpVersion, headers, body, contentType, bodySize: body.length };
+  } catch {
+    return null;
+  }
+}
 
