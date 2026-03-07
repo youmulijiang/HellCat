@@ -1,0 +1,144 @@
+import React, { useMemo, useState } from 'react';
+import { Tabs, Tag, Empty, Button, message } from 'antd';
+import { CopyOutlined } from '@ant-design/icons';
+
+export interface ApiResponse {
+  status: number;
+  statusText: string;
+  headers: { name: string; value: string }[];
+  body: string;
+  duration: number;
+  size: number;
+}
+
+interface ResponseViewerProps {
+  response: ApiResponse | null;
+  loading: boolean;
+  error: string | null;
+}
+
+/** 状态码颜色 */
+function getStatusColor(status: number) {
+  if (status >= 200 && status < 300) return 'green';
+  if (status >= 300 && status < 400) return 'blue';
+  if (status >= 400 && status < 500) return 'orange';
+  if (status >= 500) return 'red';
+  return 'default';
+}
+
+/** 格式化大小 */
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+/** 尝试格式化 JSON */
+function tryFormatJson(text: string): { formatted: string; isJson: boolean } {
+  try {
+    const parsed = JSON.parse(text);
+    return { formatted: JSON.stringify(parsed, null, 2), isJson: true };
+  } catch {
+    return { formatted: text, isJson: false };
+  }
+}
+
+/**
+ * 响应查看器 — 展示状态码、耗时、大小、Body（Pretty/Raw）、Headers
+ */
+export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loading, error }) => {
+  const [activeTab, setActiveTab] = useState('body');
+
+  const formattedBody = useMemo(() => {
+    if (!response?.body) return { formatted: '', isJson: false };
+    return tryFormatJson(response.body);
+  }, [response?.body]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-400 text-xs">
+        <div className="flex flex-col items-center gap-2">
+          <div className="animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full" />
+          <span>Sending request...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full text-red-500 text-xs p-4">
+        <div className="text-center">
+          <div className="text-lg mb-2">✕</div>
+          <div className="font-bold mb-1">Request Error</div>
+          <div className="text-red-400">{error}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!response) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Empty description={<span className="text-gray-400 text-xs">点击 Send 发送请求后查看响应</span>} />
+      </div>
+    );
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(response.body);
+    message.success('已复制响应体');
+  };
+
+  const tabItems = [
+    {
+      key: 'body',
+      label: <span className="text-xs">Body</span>,
+      children: (
+        <div className="relative">
+          <Button
+            type="text" size="small" icon={<CopyOutlined />}
+            onClick={handleCopy}
+            className="absolute right-0 top-0 z-10 text-gray-400 hover:text-blue-500"
+          />
+          <pre className="text-xs font-mono whitespace-pre-wrap break-all p-2 m-0 max-h-[calc(100vh-220px)] overflow-auto bg-gray-50 rounded">
+            {formattedBody.isJson ? formattedBody.formatted : response.body}
+          </pre>
+        </div>
+      ),
+    },
+    {
+      key: 'headers',
+      label: <span className="text-xs">Headers ({response.headers.length})</span>,
+      children: (
+        <div className="text-xs space-y-0.5 p-2">
+          {response.headers.map((h, i) => (
+            <div key={i} className="flex gap-2 py-0.5 border-b border-gray-100">
+              <span className="font-bold text-blue-600 shrink-0">{h.name}:</span>
+              <span className="text-gray-600 break-all">{h.value}</span>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* 状态栏 */}
+      <div className="flex items-center gap-3 px-3 py-1.5 border-b border-gray-200 bg-gray-50 shrink-0">
+        <Tag color={getStatusColor(response.status)} className="text-xs m-0 font-mono">
+          {response.status} {response.statusText}
+        </Tag>
+        <span className="text-[10px] text-gray-400">Time: <span className="text-gray-600 font-mono">{response.duration}ms</span></span>
+        <span className="text-[10px] text-gray-400">Size: <span className="text-gray-600 font-mono">{formatSize(response.size)}</span></span>
+      </div>
+
+      {/* 标签页 */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <Tabs size="small" activeKey={activeTab} onChange={setActiveTab} items={tabItems} className="px-2" />
+      </div>
+    </div>
+  );
+};
+

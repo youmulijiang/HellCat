@@ -1,8 +1,9 @@
 import CryptoJS from 'crypto-js';
 import JSEncrypt from 'jsencrypt';
+import { SignJWT, jwtVerify, decodeJwt, decodeProtectedHeader } from 'jose';
 
 /** 工具分类 */
-export type CodecCategory = 'encoding' | 'hash' | 'symmetric' | 'asymmetric';
+export type CodecCategory = 'encoding' | 'hash' | 'symmetric' | 'asymmetric' | 'jwt';
 
 /** 工具定义 */
 export interface CodecTool {
@@ -17,8 +18,8 @@ export interface CodecTool {
   oneWay?: boolean;
   /** 是否需要公钥/私钥 */
   needKeyPair?: boolean;
-  encode: (input: string, key?: string, iv?: string) => string;
-  decode?: (input: string, key?: string, iv?: string) => string;
+  encode: (input: string, key?: string, iv?: string) => string | Promise<string>;
+  decode?: (input: string, key?: string, iv?: string) => string | Promise<string>;
 }
 
 // ==================== 编码工具 ====================
@@ -153,6 +154,133 @@ const rsaTool: CodecTool = {
   },
 };
 
+// ==================== JWT ====================
+
+/** 将字符串转为 Uint8Array 密钥（用于 HMAC 签名） */
+function textToSecret(secret: string): Uint8Array {
+  return new TextEncoder().encode(secret);
+}
+
+/**
+ * JWT 签名工具
+ * Input：JSON 格式的 payload（如 {"sub":"1234","name":"test"}）
+ * Key：HMAC Secret（用于 HS256/HS384/HS512 签名）
+ * Encode：生成签名后的 JWT Token
+ * Decode：解析 JWT Token 为 Header + Payload（无需密钥），如有密钥则同时验证签名
+ */
+const jwtTool: CodecTool = {
+  key: 'jwt', label: 'JWT (HS256)', category: 'jwt', needKey: true,
+  encode: async (input, key = '') => {
+    if (!key) throw new Error('请输入 Secret Key 用于签名');
+    const payload = JSON.parse(input);
+    const secret = textToSecret(key);
+    const token = await new SignJWT(payload)
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setIssuedAt()
+      .sign(secret);
+    return token;
+  },
+  decode: async (input, key = '') => {
+    const token = input.trim();
+    // 先解析 Header 和 Payload（不验证签名）
+    const header = decodeProtectedHeader(token);
+    const payload = decodeJwt(token);
+
+    const parts: string[] = [
+      '=== HEADER ===',
+      JSON.stringify(header, null, 2),
+      '',
+      '=== PAYLOAD ===',
+      JSON.stringify(payload, null, 2),
+    ];
+
+    // 如果提供了密钥，尝试验证签名
+    if (key) {
+      try {
+        const secret = textToSecret(key);
+        const { protectedHeader } = await jwtVerify(token, secret);
+        parts.push('', '=== SIGNATURE ===', `✅ 签名验证通过 (alg: ${protectedHeader.alg})`);
+      } catch (err) {
+        parts.push('', '=== SIGNATURE ===', `❌ 签名验证失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    } else {
+      parts.push('', '=== SIGNATURE ===', '⚠️ 未提供 Secret Key，跳过签名验证');
+    }
+
+    return parts.join('\n');
+  },
+};
+
+const jwtHs384Tool: CodecTool = {
+  key: 'jwt-hs384', label: 'JWT (HS384)', category: 'jwt', needKey: true,
+  encode: async (input, key = '') => {
+    if (!key) throw new Error('请输入 Secret Key 用于签名');
+    const payload = JSON.parse(input);
+    const secret = textToSecret(key);
+    const token = await new SignJWT(payload)
+      .setProtectedHeader({ alg: 'HS384', typ: 'JWT' })
+      .setIssuedAt()
+      .sign(secret);
+    return token;
+  },
+  decode: async (input, key = '') => {
+    const token = input.trim();
+    const header = decodeProtectedHeader(token);
+    const payload = decodeJwt(token);
+    const parts: string[] = [
+      '=== HEADER ===', JSON.stringify(header, null, 2),
+      '', '=== PAYLOAD ===', JSON.stringify(payload, null, 2),
+    ];
+    if (key) {
+      try {
+        const secret = textToSecret(key);
+        const { protectedHeader } = await jwtVerify(token, secret);
+        parts.push('', '=== SIGNATURE ===', `✅ 签名验证通过 (alg: ${protectedHeader.alg})`);
+      } catch (err) {
+        parts.push('', '=== SIGNATURE ===', `❌ 签名验证失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    } else {
+      parts.push('', '=== SIGNATURE ===', '⚠️ 未提供 Secret Key，跳过签名验证');
+    }
+    return parts.join('\n');
+  },
+};
+
+const jwtHs512Tool: CodecTool = {
+  key: 'jwt-hs512', label: 'JWT (HS512)', category: 'jwt', needKey: true,
+  encode: async (input, key = '') => {
+    if (!key) throw new Error('请输入 Secret Key 用于签名');
+    const payload = JSON.parse(input);
+    const secret = textToSecret(key);
+    const token = await new SignJWT(payload)
+      .setProtectedHeader({ alg: 'HS512', typ: 'JWT' })
+      .setIssuedAt()
+      .sign(secret);
+    return token;
+  },
+  decode: async (input, key = '') => {
+    const token = input.trim();
+    const header = decodeProtectedHeader(token);
+    const payload = decodeJwt(token);
+    const parts: string[] = [
+      '=== HEADER ===', JSON.stringify(header, null, 2),
+      '', '=== PAYLOAD ===', JSON.stringify(payload, null, 2),
+    ];
+    if (key) {
+      try {
+        const secret = textToSecret(key);
+        const { protectedHeader } = await jwtVerify(token, secret);
+        parts.push('', '=== SIGNATURE ===', `✅ 签名验证通过 (alg: ${protectedHeader.alg})`);
+      } catch (err) {
+        parts.push('', '=== SIGNATURE ===', `❌ 签名验证失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    } else {
+      parts.push('', '=== SIGNATURE ===', '⚠️ 未提供 Secret Key，跳过签名验证');
+    }
+    return parts.join('\n');
+  },
+};
+
 // ==================== 导出 ====================
 
 export const CODEC_CATEGORIES: { key: CodecCategory; label: string }[] = [
@@ -160,6 +288,7 @@ export const CODEC_CATEGORIES: { key: CodecCategory; label: string }[] = [
   { key: 'hash', label: '哈希摘要' },
   { key: 'symmetric', label: '对称加密' },
   { key: 'asymmetric', label: '非对称加密' },
+  { key: 'jwt', label: 'JWT' },
 ];
 
 export const ALL_CODEC_TOOLS: CodecTool[] = [
@@ -167,4 +296,5 @@ export const ALL_CODEC_TOOLS: CodecTool[] = [
   md5Tool, sha1Tool, sha256Tool, sha512Tool, hmacMd5Tool, hmacSha256Tool,
   aesTool, desTool, tripleDesTool, rc4Tool,
   rsaTool,
+  jwtTool, jwtHs384Tool, jwtHs512Tool,
 ];

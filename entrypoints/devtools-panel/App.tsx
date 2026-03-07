@@ -6,7 +6,9 @@ import { DataGeneratorLayout } from '@/components/data-generator/DataGeneratorLa
 import { DiffLayout } from '@/components/diff/DiffLayout';
 import { MiscLayout } from '@/components/misc/MiscLayout';
 import { PayloadStoreLayout } from '@/components/payload-store/PayloadStoreLayout';
+import { VulnScanLayout } from '@/components/vulnerability/VulnScanLayout';
 import { CodecLayout } from '@/components/codec/CodecLayout';
+import { ApiTesterLayout } from '@/components/api-tester/ApiTesterLayout';
 
 /**
  * DevTools 面板入口组件
@@ -31,6 +33,10 @@ const App: React.FC = () => {
         return <DiffLayout />;
       case 'misc':
         return <MiscLayout />;
+      case 'vulnerability':
+        return <VulnScanLayout />;
+      case 'api-test':
+        return <ApiTesterLayout />;
       default:
         return (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">

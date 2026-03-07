@@ -28,22 +28,22 @@ export const CodecLayout: React.FC = () => {
   const currentTool = ALL_CODEC_TOOLS.find((t) => t.key === selectedTool);
   const categoryTools = ALL_CODEC_TOOLS.filter((t) => t.category === activeCategory);
 
-  const handleEncode = useCallback(() => {
+  const handleEncode = useCallback(async () => {
     if (!currentTool || !input.trim()) return;
     try {
       const key = currentTool.needKeyPair ? publicKey : secretKey;
-      const result = currentTool.encode(input, key, iv);
+      const result = await currentTool.encode(input, key, iv);
       setOutput(result);
     } catch (err) {
       setOutput(`Error: ${err instanceof Error ? err.message : String(err)}`);
     }
   }, [currentTool, input, secretKey, iv, publicKey]);
 
-  const handleDecode = useCallback(() => {
+  const handleDecode = useCallback(async () => {
     if (!currentTool?.decode || !input.trim()) return;
     try {
       const key = currentTool.needKeyPair ? privateKey : secretKey;
-      const result = currentTool.decode(input, key, iv);
+      const result = await currentTool.decode(input, key, iv);
       setOutput(result || '(empty result)');
     } catch (err) {
       setOutput(`Error: ${err instanceof Error ? err.message : String(err)}`);
