@@ -3,11 +3,16 @@ import { usePacketStore } from '@/stores/usePacketStore';
 import { HistoryToolbar } from './HistoryToolbar';
 import { HistoryListItem } from './HistoryListItem';
 
+interface HistoryPanelProps {
+  onForward: (packetId: string) => void;
+  onDrop: (packetId: string) => void;
+}
+
 /**
  * 历史面板
  * 左侧面板，展示捕获的数据包列表
  */
-export const HistoryPanel: React.FC = () => {
+export const HistoryPanel: React.FC<HistoryPanelProps> = ({ onForward, onDrop }) => {
   const {
     packets,
     selectedPacketId,
@@ -51,7 +56,7 @@ export const HistoryPanel: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <HistoryToolbar />
+      <HistoryToolbar onForwardAll={onForward} onDropAll={onDrop} />
 
       {/* 数据包列表 */}
       <div className="flex-1 overflow-y-auto">
@@ -67,6 +72,8 @@ export const HistoryPanel: React.FC = () => {
               isSelected={packet.id === selectedPacketId}
               onSelect={selectPacket}
               onToggleStar={toggleStarPacket}
+              onForward={onForward}
+              onDrop={onDrop}
             />
           ))
         )}

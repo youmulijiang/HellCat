@@ -2,7 +2,7 @@
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'TRACE' | 'CONNECT';
 
 /** 数据包状态 */
-export type PacketStatus = 'pending' | 'completed' | 'error' | 'timeout';
+export type PacketStatus = 'pending' | 'completed' | 'error' | 'timeout' | 'intercepted' | 'forwarded' | 'dropped';
 
 /** HTTP 头部键值对 */
 export interface HttpHeader {
@@ -45,6 +45,8 @@ export interface CapturedPacket {
   isStarred: boolean;
   isHighlighted: boolean;
   comment: string;
+  /** CDP 请求 ID（仅拦截模式下有值，用于 forward/drop） */
+  networkRequestId?: string;
 }
 
 /** 内容视图标签类型 - 请求 */

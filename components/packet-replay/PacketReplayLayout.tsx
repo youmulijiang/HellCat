@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { HistoryPanel } from './history-panel/HistoryPanel';
 import { RequestPanel } from './request-panel/RequestPanel';
 import { ResponsePanel } from './response-panel/ResponsePanel';
+import { useNetworkCapture } from '@/hooks/useNetworkCapture';
 
 /** 面板最小宽度（px） */
 const MIN_PANEL_WIDTH = 150;
@@ -12,6 +13,9 @@ const MIN_PANEL_WIDTH = 150;
  * 支持拖拽调整面板宽度
  */
 export const PacketReplayLayout: React.FC = () => {
+  // 初始化网络捕获 & 拦截
+  const { forwardRequest, dropRequest } = useNetworkCapture();
+
   const [historyWidth, setHistoryWidth] = useState(240);
   const [requestWidthRatio, setRequestWidthRatio] = useState(0.5);
   const [dragging, setDragging] = useState<'history' | 'request' | null>(null);
@@ -67,7 +71,7 @@ export const PacketReplayLayout: React.FC = () => {
         className="shrink-0 border-r border-gray-200 overflow-hidden"
         style={{ width: historyWidth }}
       >
-        <HistoryPanel />
+        <HistoryPanel onForward={forwardRequest} onDrop={dropRequest} />
       </div>
 
       {/* History | Request 分隔条 */}

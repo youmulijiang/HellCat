@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ConfigProvider, theme } from 'antd';
 import { SideNav } from '@/components/layout/SideNav';
 import { PacketReplayLayout } from '@/components/packet-replay/PacketReplayLayout';
+import { DataGeneratorLayout } from '@/components/data-generator/DataGeneratorLayout';
+import { PayloadStoreLayout } from '@/components/payload-store/PayloadStoreLayout';
 
 /**
  * DevTools 面板入口组件
@@ -16,6 +18,10 @@ const App: React.FC = () => {
     switch (activeModule) {
       case 'packet-replay':
         return <PacketReplayLayout />;
+      case 'payload-store':
+        return <PayloadStoreLayout />;
+      case 'data-generator':
+        return <DataGeneratorLayout />;
       default:
         return (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   CapturedPacket,
+  ResponseData,
   RequestViewTab,
   ResponseViewTab,
   HistoryFilterType,
@@ -27,6 +28,10 @@ interface PacketStoreState {
   useHttps: boolean;
   /** 是否正在转发 */
   isForwarding: boolean;
+  /** 是否正在捕获网络请求 */
+  isCapturing: boolean;
+  /** 是否开启拦截模式 */
+  isIntercepting: boolean;
 }
 
 interface PacketStoreActions {
@@ -54,8 +59,18 @@ interface PacketStoreActions {
   setResponseSearchKeyword: (keyword: string) => void;
   /** 切换 HTTPS */
   toggleHttps: () => void;
+  /** 切换捕获状态 */
+  toggleCapturing: () => void;
+  /** 切换拦截状态 */
+  toggleIntercepting: () => void;
+  /** 更新数据包的响应数据 */
+  updatePacketResponse: (id: string, response: ResponseData) => void;
   /** 获取当前选中的数据包 */
   getSelectedPacket: () => CapturedPacket | undefined;
+  /** 更新数据包状态 */
+  updatePacketStatus: (id: string, status: import('@/types/packet').PacketStatus) => void;
+  /** 获取所有被拦截（暂停中）的数据包 */
+  getInterceptedPackets: () => CapturedPacket[];
 }
 
 export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set, get) => ({
@@ -69,6 +84,8 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
   responseSearchKeyword: '',
   useHttps: true,
   isForwarding: false,
+  isCapturing: true,
+  isIntercepting: false,
 
   addPacket: (packet) =>
     set((state) => ({ packets: [...state.packets, packet] })),
@@ -113,9 +130,33 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
   toggleHttps: () =>
     set((state) => ({ useHttps: !state.useHttps })),
 
+  toggleCapturing: () =>
+    set((state) => ({ isCapturing: !state.isCapturing })),
+
+  toggleIntercepting: () =>
+    set((state) => ({ isIntercepting: !state.isIntercepting })),
+
+  updatePacketResponse: (id, response) =>
+    set((state) => ({
+      packets: state.packets.map((p) =>
+        p.id === id ? { ...p, response, status: 'completed' as const } : p
+      ),
+    })),
+
   getSelectedPacket: () => {
     const { packets, selectedPacketId } = get();
     return packets.find((p) => p.id === selectedPacketId);
+  },
+
+  updatePacketStatus: (id, status) =>
+    set((state) => ({
+      packets: state.packets.map((p) =>
+        p.id === id ? { ...p, status } : p
+      ),
+    })),
+
+  getInterceptedPackets: () => {
+    return get().packets.filter((p) => p.status === 'intercepted');
   },
 }));
 
