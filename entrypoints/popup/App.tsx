@@ -1,49 +1,72 @@
-import React from 'react';
-import { ConfigProvider, Tabs } from 'antd';
-import { CookiePanel } from '@/components/popup/cookie/CookiePanel';
-import { UrlOpenerPanel } from '@/components/popup/url-opener/UrlOpenerPanel';
-import { VueCrackPanel } from '@/components/popup/vue-crack/VueCrackPanel';
-import { InfoCollectPanel } from '@/components/popup/info-collect/InfoCollectPanel';
-import { DorkPanel } from '@/components/popup/dork/DorkPanel';
-import { InjectPanel } from '@/components/popup/inject/InjectPanel';
-import { ProxyPanel } from '@/components/popup/proxy/ProxyPanel';
+import React, { lazy, Suspense } from 'react';
+import { ConfigProvider, Spin, Tabs } from 'antd';
+
+/* ── 懒加载各面板（命名导出需要包装为 default） ── */
+const CookiePanel = lazy(() =>
+  import('@/components/popup/cookie/CookiePanel').then((m) => ({ default: m.CookiePanel })),
+);
+const UrlOpenerPanel = lazy(() =>
+  import('@/components/popup/url-opener/UrlOpenerPanel').then((m) => ({ default: m.UrlOpenerPanel })),
+);
+const VueCrackPanel = lazy(() =>
+  import('@/components/popup/vue-crack/VueCrackPanel').then((m) => ({ default: m.VueCrackPanel })),
+);
+const InfoCollectPanel = lazy(() =>
+  import('@/components/popup/info-collect/InfoCollectPanel').then((m) => ({ default: m.InfoCollectPanel })),
+);
+const DorkPanel = lazy(() =>
+  import('@/components/popup/dork/DorkPanel').then((m) => ({ default: m.DorkPanel })),
+);
+const InjectPanel = lazy(() =>
+  import('@/components/popup/inject/InjectPanel').then((m) => ({ default: m.InjectPanel })),
+);
+const ProxyPanel = lazy(() =>
+  import('@/components/popup/proxy/ProxyPanel').then((m) => ({ default: m.ProxyPanel })),
+);
+
+/** 懒加载 fallback */
+const LazyFallback = (
+  <div className="flex items-center justify-center h-32">
+    <Spin size="small" />
+  </div>
+);
 
 /** Popup 选项卡定义 */
 const POPUP_TABS = [
   {
     key: 'cookie',
     label: 'Cookie操作',
-    children: <CookiePanel />,
+    children: <Suspense fallback={LazyFallback}><CookiePanel /></Suspense>,
   },
   {
     key: 'url-opener',
     label: 'URL多开',
-    children: <UrlOpenerPanel />,
+    children: <Suspense fallback={LazyFallback}><UrlOpenerPanel /></Suspense>,
   },
   {
     key: 'vue-crack',
     label: 'VueCrack',
-    children: <VueCrackPanel />,
+    children: <Suspense fallback={LazyFallback}><VueCrackPanel /></Suspense>,
   },
   {
     key: 'info-collect',
     label: '信息收集',
-    children: <InfoCollectPanel />,
+    children: <Suspense fallback={LazyFallback}><InfoCollectPanel /></Suspense>,
   },
   {
     key: 'dork',
     label: 'Dork',
-    children: <DorkPanel />,
+    children: <Suspense fallback={LazyFallback}><DorkPanel /></Suspense>,
   },
   {
     key: 'inject',
     label: '注入',
-    children: <InjectPanel />,
+    children: <Suspense fallback={LazyFallback}><InjectPanel /></Suspense>,
   },
   {
     key: 'proxy',
     label: '代理',
-    children: <ProxyPanel />,
+    children: <Suspense fallback={LazyFallback}><ProxyPanel /></Suspense>,
   },
 ];
 

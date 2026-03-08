@@ -1,15 +1,42 @@
-import React, { useState } from 'react';
-import { ConfigProvider, theme } from 'antd';
+import React, { lazy, Suspense, useState } from 'react';
+import { ConfigProvider, Spin, theme } from 'antd';
 import { SideNav } from '@/components/layout/SideNav';
-import { PacketReplayLayout } from '@/components/packet-replay/PacketReplayLayout';
-import { DataGeneratorLayout } from '@/components/data-generator/DataGeneratorLayout';
-import { DiffLayout } from '@/components/diff/DiffLayout';
-import { MiscLayout } from '@/components/misc/MiscLayout';
-import { PayloadStoreLayout } from '@/components/payload-store/PayloadStoreLayout';
-import { VulnScanLayout } from '@/components/vulnerability/VulnScanLayout';
-import { CodecLayout } from '@/components/codec/CodecLayout';
-import { ApiTesterLayout } from '@/components/api-tester/ApiTesterLayout';
-import { WebSocketLayout } from '@/components/websocket/WebSocketLayout';
+
+/* ── 懒加载各功能模块（命名导出需要包装为 default） ── */
+const PacketReplayLayout = lazy(() =>
+  import('@/components/packet-replay/PacketReplayLayout').then((m) => ({ default: m.PacketReplayLayout })),
+);
+const CodecLayout = lazy(() =>
+  import('@/components/codec/CodecLayout').then((m) => ({ default: m.CodecLayout })),
+);
+const PayloadStoreLayout = lazy(() =>
+  import('@/components/payload-store/PayloadStoreLayout').then((m) => ({ default: m.PayloadStoreLayout })),
+);
+const DataGeneratorLayout = lazy(() =>
+  import('@/components/data-generator/DataGeneratorLayout').then((m) => ({ default: m.DataGeneratorLayout })),
+);
+const DiffLayout = lazy(() =>
+  import('@/components/diff/DiffLayout').then((m) => ({ default: m.DiffLayout })),
+);
+const MiscLayout = lazy(() =>
+  import('@/components/misc/MiscLayout').then((m) => ({ default: m.MiscLayout })),
+);
+const VulnScanLayout = lazy(() =>
+  import('@/components/vulnerability/VulnScanLayout').then((m) => ({ default: m.VulnScanLayout })),
+);
+const ApiTesterLayout = lazy(() =>
+  import('@/components/api-tester/ApiTesterLayout').then((m) => ({ default: m.ApiTesterLayout })),
+);
+const WebSocketLayout = lazy(() =>
+  import('@/components/websocket/WebSocketLayout').then((m) => ({ default: m.WebSocketLayout })),
+);
+
+/** 懒加载 fallback */
+const LazyFallback = (
+  <div className="flex items-center justify-center h-full">
+    <Spin size="small" tip="加载中..." />
+  </div>
+);
 
 /**
  * DevTools 面板入口组件
@@ -77,7 +104,9 @@ const App: React.FC = () => {
 
         {/* 右侧功能区 */}
         <div className="flex-1 min-w-0 overflow-hidden" style={{ marginLeft: 13 }}>
-          {renderModuleContent()}
+          <Suspense fallback={LazyFallback}>
+            {renderModuleContent()}
+          </Suspense>
         </div>
       </div>
     </ConfigProvider>
