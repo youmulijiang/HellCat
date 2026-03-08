@@ -5,7 +5,14 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    permissions: ['debugger'],
+    permissions: ['debugger', 'cookies', 'activeTab', 'tabs', 'proxy'],
+    host_permissions: ['<all_urls>'],
+    web_accessible_resources: [
+      {
+        resources: ['vue-detector.js'],
+        matches: ['*://*/*'],
+      },
+    ],
   },
   vite: () => ({
     plugins: [tailwindcss()],

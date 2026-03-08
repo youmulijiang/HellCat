@@ -7,8 +7,25 @@ import type { HttpMethod, HttpHeader } from '@/types/packet';
 export default defineBackground(() => {
   console.log('[Hellcat] Background started', { id: browser.runtime.id });
 
+  /**
+   * 监听来自 content script 的 fetchJsContent 请求
+   */
+  browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message.action === 'fetchJsContent' && message.url) {
+      fetch(message.url, { credentials: 'omit' })
+        .then((resp) => resp.text())
+        .then((content) => sendResponse({ content }))
+        .catch(() => sendResponse({ content: null }));
+      return true; // 异步响应
+    }
+    return false;
+  });
+
   /** 记录哪些 tab 正在被拦截 */
   const interceptedTabs = new Set<number>();
+
+  /** 记录哪些 tab 正在进行 WebSocket 监控 */
+  const wsMonitoredTabs = new Set<number>();
 
   /** 记录每个 tab 关联的 devtools port（用于向面板发消息） */
   const devtoolsPorts = new Map<number, Browser.runtime.Port>();
@@ -48,12 +65,23 @@ export default defineBackground(() => {
         case 'SEND_REQUEST':
           sendRequest(msg, port);
           break;
+
+        case 'START_WS_MONITOR':
+          connectedTabId = msg.tabId;
+          devtoolsPorts.set(msg.tabId, port);
+          startWsMonitor(msg.tabId);
+          break;
+
+        case 'STOP_WS_MONITOR':
+          stopWsMonitor(msg.tabId);
+          break;
       }
     });
 
     port.onDisconnect.addListener(() => {
       if (connectedTabId !== null) {
         stopIntercept(connectedTabId);
+        stopWsMonitor(connectedTabId);
         devtoolsPorts.delete(connectedTabId);
       }
     });
@@ -105,7 +133,10 @@ export default defineBackground(() => {
       }
 
       await browser.debugger.sendCommand({ tabId }, 'Fetch.disable');
-      await browser.debugger.detach({ tabId });
+      // 仅在 WS 监控也未使用时才 detach
+      if (!wsMonitoredTabs.has(tabId)) {
+        await browser.debugger.detach({ tabId });
+      }
       interceptedTabs.delete(tabId);
       console.log(`[Hellcat] Intercepting disabled for tab ${tabId}`);
 
@@ -113,6 +144,58 @@ export default defineBackground(() => {
     } catch (err) {
       console.error(`[Hellcat] Failed to stop intercept for tab ${tabId}:`, err);
       interceptedTabs.delete(tabId);
+    }
+  }
+
+  // ─── WebSocket 监控 ─────────────────────────────────────
+
+  /**
+   * 判断当前 tab 是否已经 attach 了 debugger
+   */
+  function isDebuggerAttached(tabId: number): boolean {
+    return interceptedTabs.has(tabId) || wsMonitoredTabs.has(tabId);
+  }
+
+  /**
+   * 开启 WebSocket 监控：启用 Network 域监听 WS 事件
+   */
+  async function startWsMonitor(tabId: number) {
+    if (wsMonitoredTabs.has(tabId)) return;
+
+    try {
+      // 如果 debugger 尚未 attach，先 attach
+      if (!isDebuggerAttached(tabId)) {
+        await browser.debugger.attach({ tabId }, '1.3');
+      }
+      await browser.debugger.sendCommand({ tabId }, 'Network.enable');
+      wsMonitoredTabs.add(tabId);
+      console.log(`[Hellcat] WS monitor enabled for tab ${tabId}`);
+
+      notifyDevTools(tabId, { type: 'WS_MONITOR_STATUS', active: true, tabId });
+    } catch (err) {
+      console.error(`[Hellcat] Failed to start WS monitor for tab ${tabId}:`, err);
+    }
+  }
+
+  /**
+   * 关闭 WebSocket 监控
+   */
+  async function stopWsMonitor(tabId: number) {
+    if (!wsMonitoredTabs.has(tabId)) return;
+
+    try {
+      await browser.debugger.sendCommand({ tabId }, 'Network.disable');
+      // 仅在 Fetch 拦截也未使用时才 detach
+      if (!interceptedTabs.has(tabId)) {
+        await browser.debugger.detach({ tabId });
+      }
+      wsMonitoredTabs.delete(tabId);
+      console.log(`[Hellcat] WS monitor disabled for tab ${tabId}`);
+
+      notifyDevTools(tabId, { type: 'WS_MONITOR_STATUS', active: false, tabId });
+    } catch (err) {
+      console.error(`[Hellcat] Failed to stop WS monitor for tab ${tabId}:`, err);
+      wsMonitoredTabs.delete(tabId);
     }
   }
 
@@ -235,45 +318,100 @@ export default defineBackground(() => {
   }
 
   /**
-   * 监听 CDP 事件
+   * 监听 CDP 事件（Fetch + WebSocket）
    */
   browser.debugger.onEvent.addListener((source, method, params) => {
-    if (method !== 'Fetch.requestPaused' || !source.tabId) return;
-
+    if (!source.tabId) return;
     const tabId = source.tabId;
-    if (!interceptedTabs.has(tabId)) return;
 
-    const p = params as {
-      requestId: string;
-      request: {
-        url: string;
-        method: string;
-        headers: Record<string, string>;
-        postData?: string;
+    // ── Fetch 拦截事件 ──
+    if (method === 'Fetch.requestPaused' && interceptedTabs.has(tabId)) {
+      const p = params as {
+        requestId: string;
+        request: {
+          url: string;
+          method: string;
+          headers: Record<string, string>;
+          postData?: string;
+        };
       };
-    };
 
-    // 记录被暂停的请求
-    pausedRequests.set(p.requestId, { tabId });
+      pausedRequests.set(p.requestId, { tabId });
 
-    // 转换 headers
-    const headers: HttpHeader[] = Object.entries(p.request.headers).map(
-      ([name, value]) => ({ name, value })
-    );
+      const headers: HttpHeader[] = Object.entries(p.request.headers).map(
+        ([name, value]) => ({ name, value })
+      );
 
-    const interceptedData: InterceptedRequestData = {
-      networkRequestId: p.requestId,
-      method: p.request.method.toUpperCase() as HttpMethod,
-      url: p.request.url,
-      headers,
-      postData: p.request.postData,
-    };
+      const interceptedData: InterceptedRequestData = {
+        networkRequestId: p.requestId,
+        method: p.request.method.toUpperCase() as HttpMethod,
+        url: p.request.url,
+        headers,
+        postData: p.request.postData,
+      };
 
-    // 发送到 DevTools 面板
-    notifyDevTools(tabId, {
-      type: 'REQUEST_INTERCEPTED',
-      data: interceptedData,
-    });
+      notifyDevTools(tabId, {
+        type: 'REQUEST_INTERCEPTED',
+        data: interceptedData,
+      });
+      return;
+    }
+
+    // ── WebSocket 事件 ──
+    if (!wsMonitoredTabs.has(tabId)) return;
+
+    if (method === 'Network.webSocketCreated') {
+      const p = params as { requestId: string; url: string; initiator?: { url?: string } };
+      notifyDevTools(tabId, {
+        type: 'WS_CONNECTION_CREATED',
+        requestId: p.requestId,
+        url: p.url,
+        initiator: p.initiator?.url,
+      });
+    } else if (method === 'Network.webSocketClosed') {
+      const p = params as { requestId: string };
+      notifyDevTools(tabId, {
+        type: 'WS_CONNECTION_CLOSED',
+        requestId: p.requestId,
+      });
+    } else if (method === 'Network.webSocketFrameReceived') {
+      const p = params as {
+        requestId: string;
+        timestamp: number;
+        response: { opcode: number; mask: boolean; payloadData: string };
+      };
+      notifyDevTools(tabId, {
+        type: 'WS_FRAME',
+        requestId: p.requestId,
+        direction: 'received',
+        data: p.response.payloadData,
+        opcode: p.response.opcode,
+        mask: p.response.mask,
+        timestamp: p.timestamp,
+      });
+    } else if (method === 'Network.webSocketFrameSent') {
+      const p = params as {
+        requestId: string;
+        timestamp: number;
+        response: { opcode: number; mask: boolean; payloadData: string };
+      };
+      notifyDevTools(tabId, {
+        type: 'WS_FRAME',
+        requestId: p.requestId,
+        direction: 'sent',
+        data: p.response.payloadData,
+        opcode: p.response.opcode,
+        mask: p.response.mask,
+        timestamp: p.timestamp,
+      });
+    } else if (method === 'Network.webSocketFrameError') {
+      const p = params as { requestId: string; errorMessage: string };
+      notifyDevTools(tabId, {
+        type: 'WS_FRAME_ERROR',
+        requestId: p.requestId,
+        errorMessage: p.errorMessage,
+      });
+    }
   });
 
   /**
@@ -282,6 +420,7 @@ export default defineBackground(() => {
   browser.debugger.onDetach.addListener((source) => {
     if (source.tabId) {
       interceptedTabs.delete(source.tabId);
+      wsMonitoredTabs.delete(source.tabId);
       // 清理该 tab 的暂停请求
       for (const [reqId, info] of pausedRequests.entries()) {
         if (info.tabId === source.tabId) {

@@ -49,6 +49,18 @@ export interface SendRequestMessage {
   body?: string;
 }
 
+/** 开启 WebSocket 监控 */
+export interface StartWsMonitorMessage {
+  type: 'START_WS_MONITOR';
+  tabId: number;
+}
+
+/** 关闭 WebSocket 监控 */
+export interface StopWsMonitorMessage {
+  type: 'STOP_WS_MONITOR';
+  tabId: number;
+}
+
 /** 所有从 DevTools → Background 的消息 */
 export type DevToolsToBackgroundMessage =
   | StartInterceptMessage
@@ -56,7 +68,9 @@ export type DevToolsToBackgroundMessage =
   | ForwardRequestMessage
   | ForwardModifiedRequestMessage
   | DropRequestMessage
-  | SendRequestMessage;
+  | SendRequestMessage
+  | StartWsMonitorMessage
+  | StopWsMonitorMessage;
 
 /**
  * Background → DevTools 面板 消息
@@ -103,10 +117,54 @@ export interface SendErrorMessage {
   error: string;
 }
 
+/** WebSocket 连接创建 */
+export interface WsConnectionCreatedMessage {
+  type: 'WS_CONNECTION_CREATED';
+  requestId: string;
+  url: string;
+  initiator?: string;
+}
+
+/** WebSocket 连接关闭 */
+export interface WsConnectionClosedMessage {
+  type: 'WS_CONNECTION_CLOSED';
+  requestId: string;
+}
+
+/** WebSocket 帧事件 */
+export interface WsFrameMessage {
+  type: 'WS_FRAME';
+  requestId: string;
+  direction: 'sent' | 'received';
+  data: string;
+  opcode: number;
+  mask: boolean;
+  timestamp: number;
+}
+
+/** WebSocket 帧错误 */
+export interface WsFrameErrorMessage {
+  type: 'WS_FRAME_ERROR';
+  requestId: string;
+  errorMessage: string;
+}
+
+/** WebSocket 监控状态变更 */
+export interface WsMonitorStatusMessage {
+  type: 'WS_MONITOR_STATUS';
+  active: boolean;
+  tabId: number;
+}
+
 /** 所有从 Background → DevTools 的消息 */
 export type BackgroundToDevToolsMessage =
   | RequestInterceptedMessage
   | InterceptStatusMessage
   | SendResponseMessage
-  | SendErrorMessage;
+  | SendErrorMessage
+  | WsConnectionCreatedMessage
+  | WsConnectionClosedMessage
+  | WsFrameMessage
+  | WsFrameErrorMessage
+  | WsMonitorStatusMessage;
 

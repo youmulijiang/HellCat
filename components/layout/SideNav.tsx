@@ -11,6 +11,7 @@ import {
   DiffOutlined,
   ToolOutlined,
   LockOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 
 /** 导航模块定义 */
@@ -25,6 +26,7 @@ const NAV_MODULES: NavModule[] = [
   { key: 'packet-replay', label: '抓包/重放', icon: <SendOutlined /> },
   { key: 'codec', label: '编码/加密', icon: <LockOutlined /> },
   { key: 'vulnerability', label: '漏洞扫描', icon: <BugOutlined /> },
+  { key: 'websocket', label: 'WebSocket 调试', icon: <SwapOutlined /> },
   { key: 'api-test', label: 'API 测试', icon: <ApiOutlined /> },
   { key: 'payload-store', label: 'Payload 存储', icon: <CodeOutlined /> },
   { key: 'data-generator', label: '数据生成', icon: <ExperimentOutlined /> },

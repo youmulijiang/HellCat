@@ -9,6 +9,7 @@ import { PayloadStoreLayout } from '@/components/payload-store/PayloadStoreLayou
 import { VulnScanLayout } from '@/components/vulnerability/VulnScanLayout';
 import { CodecLayout } from '@/components/codec/CodecLayout';
 import { ApiTesterLayout } from '@/components/api-tester/ApiTesterLayout';
+import { WebSocketLayout } from '@/components/websocket/WebSocketLayout';
 
 /**
  * DevTools 面板入口组件
@@ -37,6 +38,8 @@ const App: React.FC = () => {
         return <VulnScanLayout />;
       case 'api-test':
         return <ApiTesterLayout />;
+      case 'websocket':
+        return <WebSocketLayout />;
       default:
         return (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
