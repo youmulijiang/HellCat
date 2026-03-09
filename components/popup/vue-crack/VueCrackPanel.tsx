@@ -104,7 +104,7 @@ export const VueCrackPanel: React.FC = () => {
   // ---- 检测成功，显示结果 ----
 
   return (
-    <div className="flex flex-col gap-2 py-1">
+    <div className="flex flex-col gap-2 py-1 h-full">
       {/* 状态概览 */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <Tag color="green" className="text-[10px] m-0">
@@ -141,7 +141,7 @@ export const VueCrackPanel: React.FC = () => {
         <List
           size="small"
           dataSource={fullUrls}
-          className="max-h-[320px] overflow-y-auto border border-gray-200 rounded"
+          className="flex-1 min-h-0 overflow-y-auto border border-gray-200 rounded"
           renderItem={(item) => (
             <List.Item className="!py-1 !px-2 group" style={{ padding: '4px 8px' }}>
               <div className="flex items-center w-full gap-1 min-w-0">

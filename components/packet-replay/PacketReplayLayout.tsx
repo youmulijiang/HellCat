@@ -16,7 +16,7 @@ export const PacketReplayLayout: React.FC = () => {
   // 初始化网络捕获 & 拦截
   const { forwardRequest, dropRequest, sendRequest } = useNetworkCapture();
 
-  const [historyWidth, setHistoryWidth] = useState(240);
+  const [historyWidth, setHistoryWidth] = useState(320);
   const [requestWidthRatio, setRequestWidthRatio] = useState(0.5);
   const [dragging, setDragging] = useState<'history' | 'request' | null>(null);
 

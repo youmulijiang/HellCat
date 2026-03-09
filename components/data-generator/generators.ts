@@ -1,6 +1,6 @@
-import { Faker, zh_CN, en } from '@faker-js/faker';
+import { Faker, zh_CN, en, base } from '@faker-js/faker';
 
-const faker = new Faker({ locale: [zh_CN, en] });
+const faker = new Faker({ locale: [zh_CN, en, base] });
 
 /** 中国大陆地区代码（省/直辖市） */
 const AREA_CODES = [

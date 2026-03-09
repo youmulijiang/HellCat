@@ -128,7 +128,7 @@ export const CookiePanel: React.FC = () => {
       </div>
 
       {/* Cookie 列表 */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <CookieList
           cookies={filteredCookies}
           loading={loading}

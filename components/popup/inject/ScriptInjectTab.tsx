@@ -92,7 +92,7 @@ export const ScriptInjectTab: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 h-full">
       {/* 工具栏 */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-gray-500">脚本列表 ({scripts.length})</span>
@@ -112,7 +112,7 @@ export const ScriptInjectTab: React.FC<Props> = ({
       {scripts.length === 0 ? (
         <Empty description="暂无脚本" image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-6" />
       ) : (
-        <div className="flex flex-col gap-1 max-h-[340px] overflow-y-auto">
+        <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto">
           {scripts.map(script => (
             <div
               key={script.id}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button, InputNumber, Select, Table, Tag, message, Tabs } from 'antd';
 import { CopyOutlined, ThunderboltOutlined, DeleteOutlined } from '@ant-design/icons';
 import { GENERATORS, getCategories, batchGenerate, type GeneratorDef } from './generators';
@@ -22,6 +22,21 @@ export const DataGeneratorLayout: React.FC = () => {
   );
   const [count, setCount] = useState(10);
   const [results, setResults] = useState<GeneratedRow[]>([]);
+  const tableWrapRef = useRef<HTMLDivElement>(null);
+  const [tableScrollY, setTableScrollY] = useState<number>(300);
+
+  // 动态计算表格可滚动高度（容器高度 - 表头高度）
+  useEffect(() => {
+    const el = tableWrapRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      const header = el.querySelector('.ant-table-thead');
+      const headerH = header?.getBoundingClientRect().height ?? 39;
+      setTableScrollY(el.clientHeight - headerH);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const currentGenerators = GENERATORS.filter((g) => g.category === activeCategory);
 
@@ -137,14 +152,14 @@ export const DataGeneratorLayout: React.FC = () => {
         </Button>
       </div>
 
-      {/* 结果表格 */}
-      <div className="flex-1 overflow-auto px-1">
+      {/* 结果表格 - 填充剩余空间 */}
+      <div ref={tableWrapRef} className="flex-1 min-h-0 overflow-hidden">
         <Table
           dataSource={results}
           columns={columns}
           size="small"
           pagination={false}
-          scroll={{ y: 'calc(100vh - 180px)' }}
+          scroll={{ x: '100%', y: tableScrollY }}
           locale={{ emptyText: '点击「生成」按钮生成测试数据' }}
         />
       </div>

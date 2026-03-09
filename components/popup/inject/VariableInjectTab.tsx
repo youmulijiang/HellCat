@@ -46,7 +46,7 @@ export const VariableInjectTab: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 h-full">
       {/* 添加新变量 */}
       <div className="flex items-center gap-1">
         <Input
@@ -72,7 +72,7 @@ export const VariableInjectTab: React.FC<Props> = ({
       {variables.length === 0 ? (
         <Empty description="暂无变量" image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-4" />
       ) : (
-        <div className="flex flex-col gap-1 max-h-[260px] overflow-y-auto">
+        <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto">
           {variables.map(v => (
             <div
               key={v.id}

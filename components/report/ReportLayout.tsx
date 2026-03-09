@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Button, Input, Popconfirm, Empty, message, Tooltip } from 'antd';
+import { Button, Dropdown, Input, Popconfirm, Empty, message, Tooltip } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
   SaveOutlined,
   FileTextOutlined,
   ExportOutlined,
+  FileMarkdownOutlined,
+  Html5Outlined,
+  FilePdfOutlined,
 } from '@ant-design/icons';
+import type { MenuProps } from 'antd';
 import MDEditor from '@uiw/react-md-editor';
+import { marked } from 'marked';
+import html2pdf from 'html2pdf.js';
 import { db, type Report, type ReportImage } from '@/stores/reportDb';
 
 /**
@@ -159,11 +165,10 @@ export const ReportLayout: React.FC = () => {
     message.success('已删除');
   }, [activeId, loadReports, revokeBlobUrls]);
 
-  /** 导出 Markdown（将图片转为 base64 内联） */
-  const handleExport = useCallback(async () => {
-    if (!activeId) return;
+  /** 获取内联了 base64 图片的 Markdown 内容 */
+  const getExportMarkdown = useCallback(async () => {
+    if (!activeId) return '';
     let exportContent = unresolveImageUrls(content);
-    // 将 indexeddb:// 引用的图片转为 base64 内联
     const images = await db.images.where('reportId').equals(activeId).toArray();
     for (const img of images) {
       const reader = new FileReader();
@@ -173,6 +178,45 @@ export const ReportLayout: React.FC = () => {
       });
       exportContent = exportContent.replaceAll(`indexeddb://${img.id}`, base64);
     }
+    return exportContent;
+  }, [activeId, content, unresolveImageUrls]);
+
+  /** 构建完整的 HTML 页面（带样式） */
+  const buildHtmlPage = useCallback((htmlBody: string, reportTitle: string) => {
+    return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${reportTitle}</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px 24px; color: #1a1a1a; line-height: 1.75; background: #fff; }
+  h1 { font-size: 2em; border-bottom: 2px solid #e8e8e8; padding-bottom: .3em; margin-top: 1.5em; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid #f0f0f0; padding-bottom: .25em; margin-top: 1.3em; }
+  h3 { font-size: 1.25em; margin-top: 1.2em; }
+  code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+  pre { background: #f5f5f5; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid #e8e8e8; }
+  pre code { background: none; padding: 0; }
+  blockquote { border-left: 4px solid #177ddc; padding: 8px 16px; margin: 16px 0; background: #f6faff; color: #434343; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #e8e8e8; padding: 8px 12px; text-align: left; }
+  th { background: #fafafa; font-weight: 600; }
+  img { max-width: 100%; border-radius: 6px; margin: 8px 0; }
+  a { color: #177ddc; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  hr { border: none; border-top: 1px solid #e8e8e8; margin: 24px 0; }
+  ul, ol { padding-left: 2em; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>${htmlBody}</body>
+</html>`;
+  }, []);
+
+  /** 导出 Markdown */
+  const handleExportMd = useCallback(async () => {
+    if (!activeId) return;
+    const exportContent = await getExportMarkdown();
     const blob = new Blob([exportContent], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -180,8 +224,63 @@ export const ReportLayout: React.FC = () => {
     a.download = `${title || '报告'}.md`;
     a.click();
     URL.revokeObjectURL(url);
-    message.success('已导出');
-  }, [activeId, title, content, unresolveImageUrls]);
+    message.success('Markdown 已导出');
+  }, [activeId, title, getExportMarkdown]);
+
+  /** 导出 HTML */
+  const handleExportHtml = useCallback(async () => {
+    if (!activeId) return;
+    const md = await getExportMarkdown();
+    const htmlBody = await marked.parse(md);
+    const fullHtml = buildHtmlPage(htmlBody, title || '报告');
+    const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title || '报告'}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    message.success('HTML 已导出');
+  }, [activeId, title, getExportMarkdown, buildHtmlPage]);
+
+  /** 导出 PDF（使用 html2pdf.js） */
+  const handleExportPdf = useCallback(async () => {
+    if (!activeId) return;
+    const md = await getExportMarkdown();
+    const htmlBody = await marked.parse(md);
+    const fullHtml = buildHtmlPage(htmlBody, title || '报告');
+    // 创建临时容器渲染 HTML
+    const container = document.createElement('div');
+    container.innerHTML = fullHtml;
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    document.body.appendChild(container);
+    try {
+      await html2pdf()
+        .set({
+          margin: [10, 10, 10, 10],
+          filename: `${title || '报告'}.pdf`,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, logging: false },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(container)
+        .save();
+      message.success('PDF 已导出');
+    } catch {
+      message.error('PDF 导出失败');
+    } finally {
+      document.body.removeChild(container);
+    }
+  }, [activeId, title, getExportMarkdown, buildHtmlPage]);
+
+  /** 导出菜单项 */
+  const exportMenuItems: MenuProps['items'] = [
+    { key: 'md', icon: <FileMarkdownOutlined />, label: '导出 Markdown', onClick: handleExportMd },
+    { key: 'html', icon: <Html5Outlined />, label: '导出 HTML', onClick: handleExportHtml },
+    { key: 'pdf', icon: <FilePdfOutlined />, label: '导出 PDF', onClick: handleExportPdf },
+  ];
 
   /** 粘贴事件处理 */
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -303,11 +402,11 @@ export const ReportLayout: React.FC = () => {
                   保存
                 </Button>
               </Tooltip>
-              <Tooltip title="导出 Markdown">
-                <Button size="small" icon={<ExportOutlined />} onClick={handleExport}>
-                  导出
+              <Dropdown menu={{ items: exportMenuItems }} placement="bottomRight">
+                <Button size="small" icon={<ExportOutlined />}>
+                  导出 ▾
                 </Button>
-              </Tooltip>
+              </Dropdown>
             </div>
 
             {/* Markdown 编辑器（支持粘贴/拖拽图片） */}

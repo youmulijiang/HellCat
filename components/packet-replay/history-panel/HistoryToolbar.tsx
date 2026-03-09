@@ -1,18 +1,14 @@
 import React from 'react';
-import { Input, Select, Button, Space, Tooltip, Badge } from 'antd';
+import { Input, Button, Space, Tooltip, Badge } from 'antd';
 import {
   DeleteOutlined,
-  FilterOutlined,
-  SortAscendingOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
   StopOutlined,
-  SettingOutlined,
   FastForwardOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
 import { usePacketStore } from '@/stores/usePacketStore';
-import type { HistoryFilterType } from '@/types/packet';
 
 interface HistoryToolbarProps {
   onForwardAll: (packetId: string) => void;
@@ -28,8 +24,6 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, on
     packets,
     filterKeyword,
     setFilterKeyword,
-    filterType,
-    setFilterType,
     clearPackets,
     isCapturing,
     toggleCapturing,
@@ -39,13 +33,6 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, on
   } = usePacketStore();
 
   const interceptedCount = getInterceptedPackets().length;
-
-  const filterOptions: { value: HistoryFilterType; label: string }[] = [
-    { value: 'All', label: 'All' },
-    { value: 'Starred', label: 'Starred' },
-    { value: 'Commented', label: 'Commented' },
-    { value: 'Highlighted', label: 'Highlighted' },
-  ];
 
   return (
     <div className="border-b border-gray-200 bg-[#fafafa]">
@@ -113,7 +100,7 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, on
         </div>
       </div>
 
-      {/* 第二行：过滤输入 + 工具图标 */}
+      {/* 第二行：过滤输入 + 清除按钮 */}
       <div className="flex items-center px-2 py-1 gap-1 border-t border-gray-100">
         <Input
           size="small"
@@ -123,31 +110,9 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, on
           allowClear
           className="flex-1"
         />
-        <Space size={0}>
-          <Tooltip title="Clear history" mouseEnterDelay={0.5}>
-            <Button type="text" size="small" icon={<DeleteOutlined />} onClick={clearPackets} />
-          </Tooltip>
-          <Tooltip title="Filter" mouseEnterDelay={0.5}>
-            <Button type="text" size="small" icon={<FilterOutlined />} />
-          </Tooltip>
-          <Tooltip title="Sort" mouseEnterDelay={0.5}>
-            <Button type="text" size="small" icon={<SortAscendingOutlined />} />
-          </Tooltip>
-          <Tooltip title="Settings" mouseEnterDelay={0.5}>
-            <Button type="text" size="small" icon={<SettingOutlined />} />
-          </Tooltip>
-        </Space>
-      </div>
-
-      {/* 第三行：过滤类型 */}
-      <div className="flex items-center px-2 py-1 gap-2 border-t border-gray-100">
-        <Select
-          size="small"
-          value={filterType}
-          onChange={setFilterType}
-          options={filterOptions}
-          style={{ width: 100 }}
-        />
+        <Tooltip title="Clear history" mouseEnterDelay={0.5}>
+          <Button type="text" size="small" icon={<DeleteOutlined />} onClick={clearPackets} />
+        </Tooltip>
       </div>
     </div>
   );

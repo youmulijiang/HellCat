@@ -31,7 +31,7 @@ export const CookieList: React.FC<CookieListProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-1 p-2 overflow-y-auto max-h-[320px]">
+    <div className="flex flex-col gap-1 p-2">
       {cookies.map((cookie) => (
         <div
           key={cookie.key}
