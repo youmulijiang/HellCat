@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    permissions: ['debugger', 'cookies', 'activeTab', 'tabs', 'proxy', 'scripting', 'storage'],
+    permissions: ['debugger', 'cookies', 'activeTab', 'tabs', 'proxy', 'scripting', 'storage', 'alarms'],
     host_permissions: ['<all_urls>'],
     web_accessible_resources: [
       {

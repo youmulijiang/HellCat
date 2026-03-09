@@ -143,7 +143,7 @@ export const MultiOpenTab: React.FC = () => {
       </div>
 
       {/* URL 输入区 */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 flex flex-col [&_.ant-input]:!flex-1 [&_.ant-input]:!resize-none">
         <TextArea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -153,31 +153,29 @@ export const MultiOpenTab: React.FC = () => {
         />
       </div>
 
-      {/* 选项区 */}
-      <div className="flex items-center gap-3 flex-wrap text-xs">
-        <Checkbox
-          checked={ignoreDuplicates}
-          onChange={(e) => setIgnoreDuplicates(e.target.checked)}
-        >
-          <span className="text-xs">忽略重复</span>
-        </Checkbox>
-        <Checkbox
-          checked={randomOrder}
-          onChange={(e) => setRandomOrder(e.target.checked)}
-        >
-          <span className="text-xs">随机顺序</span>
-        </Checkbox>
-      </div>
-
       {/* 底部操作区 */}
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] text-gray-400">{lineCount} 个URL</span>
+      <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
+          <Checkbox
+            checked={ignoreDuplicates}
+            onChange={(e) => setIgnoreDuplicates(e.target.checked)}
+          >
+            <span className="text-[11px]">去重</span>
+          </Checkbox>
+          <Checkbox
+            checked={randomOrder}
+            onChange={(e) => setRandomOrder(e.target.checked)}
+          >
+            <span className="text-[11px]">随机</span>
+          </Checkbox>
+          <span className="text-[10px] text-gray-400">{lineCount} 条</span>
+        </div>
+        <div className="flex items-center gap-1.5">
           <Select
             size="small"
             value={openMode}
             onChange={setOpenMode}
-            className="w-28"
+            className="w-24"
             options={[
               { value: 'current', label: '当前窗口' },
               { value: 'new', label: '新窗口' },

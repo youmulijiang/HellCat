@@ -3,6 +3,18 @@ import type {
   InterceptedRequestData,
 } from '@/types/messaging';
 import type { HttpMethod, HttpHeader } from '@/types/packet';
+import {
+  URL_SLIDESHOW_ALARM_NAME,
+  URL_SLIDESHOW_STORAGE_KEY,
+  createIdleUrlSlideshowState,
+  normalizeUrlSlideshowState,
+} from '@/types/url-slideshow';
+import {
+  URL_SCREENSHOT_STORAGE_KEY,
+  createIdleUrlScreenshotState,
+  normalizeUrlScreenshotState,
+} from '@/types/url-screenshot';
+import { urlScreenshotDb } from '@/stores/urlScreenshotDb';
 
 export default defineBackground(() => {
   console.log('[Hellcat] Background started', { id: browser.runtime.id });
@@ -15,6 +27,10 @@ export default defineBackground(() => {
 
   let autoInjectScripts: AutoInjectScript[] = [];
   let autoInjectScriptsLoaded = false;
+  let urlSlideshowState = createIdleUrlSlideshowState();
+  let urlScreenshotState = createIdleUrlScreenshotState();
+  let urlScreenshotAbortRequested = false;
+  let urlScreenshotRunToken = 0;
 
   const isInjectableUrl = (url?: string) => Boolean(url && /^https?:\/\//.test(url));
 
@@ -34,14 +50,522 @@ export default defineBackground(() => {
     return autoInjectScripts;
   }
 
+  async function persistUrlSlideshowState() {
+    await browser.storage.local.set({ [URL_SLIDESHOW_STORAGE_KEY]: urlSlideshowState });
+  }
+
+  async function setUrlSlideshowState(nextState: unknown) {
+    urlSlideshowState = normalizeUrlSlideshowState(nextState);
+    await persistUrlSlideshowState();
+  }
+
+  async function persistUrlScreenshotState() {
+    await browser.storage.local.set({ [URL_SCREENSHOT_STORAGE_KEY]: urlScreenshotState });
+  }
+
+  async function setUrlScreenshotState(nextState: unknown) {
+    urlScreenshotState = normalizeUrlScreenshotState(nextState);
+    await persistUrlScreenshotState();
+  }
+
+  async function clearUrlSlideshowAlarm() {
+    await browser.alarms.clear(URL_SLIDESHOW_ALARM_NAME);
+  }
+
+  async function scheduleUrlSlideshowAdvance(seconds: number) {
+    await clearUrlSlideshowAlarm();
+    await browser.alarms.create(URL_SLIDESHOW_ALARM_NAME, {
+      when: Date.now() + Math.max(1000, Math.round(seconds * 1000)),
+    });
+  }
+
+  async function waitForTabLoad(tabId: number, timeoutMs = 15000) {
+    try {
+      const tab = await browser.tabs.get(tabId);
+      if (tab.status === 'complete') return;
+    } catch {
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      let settled = false;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        browser.tabs.onUpdated.removeListener(handleUpdated);
+        browser.tabs.onRemoved.removeListener(handleRemoved);
+        clearTimeout(timeoutId);
+        resolve();
+      };
+
+      const handleUpdated = (updatedTabId: number, changeInfo: { status?: string }) => {
+        if (updatedTabId === tabId && changeInfo.status === 'complete') finish();
+      };
+
+      const handleRemoved = (removedTabId: number) => {
+        if (removedTabId === tabId) finish();
+      };
+
+      const timeoutId = setTimeout(finish, timeoutMs);
+      browser.tabs.onUpdated.addListener(handleUpdated);
+      browser.tabs.onRemoved.addListener(handleRemoved);
+    });
+  }
+
+  async function wait(ms: number) {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function clearUrlScreenshotResults() {
+    await urlScreenshotDb.screenshots.clear();
+  }
+
+  function buildScreenshotFileName(url: string, index: number) {
+    try {
+      const parsed = new URL(url);
+      const hostname = parsed.hostname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const pathParts = parsed.pathname
+        .split('/')
+        .filter(Boolean)
+        .map((part) => part.replace(/[^a-zA-Z0-9.-]/g, '_'));
+      const lastPath = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'home';
+      return `${String(index + 1).padStart(2, '0')}_${hostname}_${lastPath}.png`;
+    } catch {
+      return `screenshot_${index + 1}.png`;
+    }
+  }
+
+  function base64ToBlob(base64: string, mimeType = 'image/png') {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: mimeType });
+  }
+
+  async function captureTabScreenshotBlob(tabId: number) {
+    let attachedByUs = false;
+
+    try {
+      if (!isDebuggerAttached(tabId)) {
+        await browser.debugger.attach({ tabId }, '1.3');
+        attachedByUs = true;
+      }
+
+      await browser.debugger.sendCommand({ tabId }, 'Page.enable');
+      const metrics = await browser.debugger.sendCommand({ tabId }, 'Page.getLayoutMetrics') as {
+        cssContentSize?: { width?: number; height?: number };
+        contentSize?: { width?: number; height?: number };
+      };
+
+      const rawWidth = Math.ceil(metrics.cssContentSize?.width ?? metrics.contentSize?.width ?? 1280);
+      const rawHeight = Math.ceil(metrics.cssContentSize?.height ?? metrics.contentSize?.height ?? 720);
+      const width = Math.max(1280, Math.min(rawWidth, 10000));
+      const height = Math.max(720, Math.min(rawHeight, 16000));
+
+      await browser.debugger.sendCommand({ tabId }, 'Emulation.setDeviceMetricsOverride', {
+        mobile: false,
+        width,
+        height,
+        deviceScaleFactor: 1,
+      });
+      await wait(250);
+
+      const screenshot = await browser.debugger.sendCommand({ tabId }, 'Page.captureScreenshot', {
+        format: 'png',
+        fromSurface: true,
+        captureBeyondViewport: true,
+      }) as { data?: string };
+
+      if (!screenshot.data) {
+        throw new Error('未获取到截图数据');
+      }
+
+      return base64ToBlob(screenshot.data, 'image/png');
+    } finally {
+      try {
+        await browser.debugger.sendCommand({ tabId }, 'Emulation.clearDeviceMetricsOverride');
+      } catch {
+        // ignore
+      }
+
+      try {
+        await browser.debugger.sendCommand({ tabId }, 'Page.disable');
+      } catch {
+        // ignore
+      }
+
+      if (attachedByUs) {
+        try {
+          await browser.debugger.detach({ tabId });
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }
+
+  async function runUrlScreenshotJob(urls: string[], sessionId: string, runToken: number) {
+    let capturedCount = 0;
+    let failedCount = 0;
+    let lastError = '';
+
+    for (let index = 0; index < urls.length; index += 1) {
+      if (runToken !== urlScreenshotRunToken || urlScreenshotAbortRequested) break;
+
+      const currentUrl = urls[index];
+      await setUrlScreenshotState({
+        ...urlScreenshotState,
+        running: true,
+        stopping: false,
+        completed: false,
+        currentIndex: index,
+        currentUrl,
+        sessionId,
+        total: urls.length,
+        updatedAt: Date.now(),
+      });
+
+      let tabId: number | null = null;
+      try {
+        const tab = await browser.tabs.create({ url: currentUrl, active: false });
+        tabId = tab.id ?? null;
+        if (!tabId) {
+          throw new Error('创建标签页失败');
+        }
+
+        await waitForTabLoad(tabId, 20000);
+        await wait(1200);
+
+        if (runToken !== urlScreenshotRunToken || urlScreenshotAbortRequested) break;
+
+        const blob = await captureTabScreenshotBlob(tabId);
+        await urlScreenshotDb.screenshots.add({
+          id: crypto.randomUUID(),
+          sessionId,
+          url: currentUrl,
+          blob,
+          filename: buildScreenshotFileName(currentUrl, index),
+          mimeType: 'image/png',
+          order: index,
+          createdAt: Date.now(),
+        });
+        capturedCount += 1;
+      } catch (err) {
+        failedCount += 1;
+        lastError = err instanceof Error ? err.message : '截图失败';
+        console.warn(`[Hellcat] Screenshot failed for ${currentUrl}:`, err);
+      } finally {
+        if (tabId) {
+          try {
+            await browser.tabs.remove(tabId);
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      await setUrlScreenshotState({
+        ...urlScreenshotState,
+        running: true,
+        stopping: false,
+        completed: false,
+        currentIndex: index,
+        processedCount: index + 1,
+        currentUrl,
+        sessionId,
+        total: urls.length,
+        capturedCount,
+        failedCount,
+        lastError,
+        updatedAt: Date.now(),
+      });
+    }
+
+    if (runToken !== urlScreenshotRunToken) return;
+
+    const aborted = urlScreenshotAbortRequested;
+    urlScreenshotAbortRequested = false;
+    await setUrlScreenshotState({
+      ...urlScreenshotState,
+      running: false,
+      stopping: false,
+      completed: !aborted,
+      currentUrl: '',
+      sessionId,
+      total: urls.length,
+      processedCount: capturedCount + failedCount,
+      capturedCount,
+      failedCount,
+      lastError,
+      updatedAt: Date.now(),
+    });
+  }
+
+  async function startUrlScreenshot(urls: string[]) {
+    if (urlScreenshotState.running) {
+      throw new Error('截图任务进行中');
+    }
+
+    const normalizedUrls = urls
+      .map((item) => item.trim())
+      .filter((item) => /^https?:\/\//i.test(item));
+
+    if (normalizedUrls.length === 0) {
+      throw new Error('没有可截图的 URL');
+    }
+
+    const sessionId = crypto.randomUUID();
+    urlScreenshotRunToken += 1;
+    urlScreenshotAbortRequested = false;
+
+    await clearUrlScreenshotResults();
+    await setUrlScreenshotState({
+      ...createIdleUrlScreenshotState(),
+      running: true,
+      currentUrl: normalizedUrls[0],
+      total: normalizedUrls.length,
+      sessionId,
+      updatedAt: Date.now(),
+    });
+
+    void runUrlScreenshotJob(normalizedUrls, sessionId, urlScreenshotRunToken);
+  }
+
+  async function stopUrlScreenshot() {
+    if (!urlScreenshotState.running) return;
+
+    urlScreenshotAbortRequested = true;
+    await setUrlScreenshotState({
+      ...urlScreenshotState,
+      stopping: true,
+      updatedAt: Date.now(),
+    });
+  }
+
+  async function resetUrlScreenshotState() {
+    if (urlScreenshotState.running) {
+      throw new Error('截图任务进行中，无法清空结果');
+    }
+
+    urlScreenshotAbortRequested = false;
+    await clearUrlScreenshotResults();
+    await setUrlScreenshotState(createIdleUrlScreenshotState());
+  }
+
+  async function ensureUrlSlideshowTab(url: string, preferredTabId: number | null) {
+    if (preferredTabId) {
+      try {
+        const existingTab = await browser.tabs.get(preferredTabId);
+        if (existingTab.url === url) {
+          await browser.tabs.update(preferredTabId, { active: true });
+          return preferredTabId;
+        }
+
+        await browser.tabs.update(preferredTabId, { url, active: true });
+        return preferredTabId;
+      } catch {
+        // 标签已失效时退回到创建新标签
+      }
+    }
+
+    const createdTab = await browser.tabs.create({ url, active: true });
+    return createdTab.id ?? null;
+  }
+
+  async function completeUrlSlideshow() {
+    await clearUrlSlideshowAlarm();
+
+    if (urlSlideshowState.urls.length === 0) {
+      await setUrlSlideshowState(createIdleUrlSlideshowState());
+      return;
+    }
+
+    const lastIndex = Math.max(0, Math.min(urlSlideshowState.currentIndex, urlSlideshowState.urls.length - 1));
+    await setUrlSlideshowState({
+      ...urlSlideshowState,
+      running: false,
+      paused: false,
+      completed: true,
+      currentIndex: lastIndex,
+      currentUrl: urlSlideshowState.urls[lastIndex] ?? urlSlideshowState.currentUrl,
+    });
+  }
+
+  async function stopUrlSlideshow() {
+    await clearUrlSlideshowAlarm();
+    await setUrlSlideshowState(createIdleUrlSlideshowState());
+  }
+
+  async function runUrlSlideshowStep(nextIndex: number) {
+    const targetUrl = urlSlideshowState.urls[nextIndex];
+    if (!targetUrl) {
+      await completeUrlSlideshow();
+      return;
+    }
+
+    const tabId = await ensureUrlSlideshowTab(targetUrl, urlSlideshowState.tabId);
+    if (!tabId) {
+      await stopUrlSlideshow();
+      return;
+    }
+
+    await setUrlSlideshowState({
+      ...urlSlideshowState,
+      running: true,
+      paused: false,
+      completed: false,
+      currentIndex: nextIndex,
+      currentUrl: targetUrl,
+      tabId,
+    });
+
+    await waitForTabLoad(tabId);
+
+    if (!urlSlideshowState.running || urlSlideshowState.paused || urlSlideshowState.currentIndex !== nextIndex) {
+      return;
+    }
+
+    await scheduleUrlSlideshowAdvance(urlSlideshowState.duration);
+  }
+
+  async function advanceUrlSlideshow() {
+    if (!urlSlideshowState.running || urlSlideshowState.paused) return;
+
+    const nextIndex = urlSlideshowState.currentIndex + 1;
+    if (nextIndex >= urlSlideshowState.urls.length) {
+      await completeUrlSlideshow();
+      return;
+    }
+
+    await runUrlSlideshowStep(nextIndex);
+  }
+
+  async function startUrlSlideshow(urls: string[], duration: number) {
+    const normalizedUrls = urls
+      .map((item) => item.trim())
+      .filter((item) => /^https?:\/\//i.test(item));
+
+    if (normalizedUrls.length === 0) {
+      throw new Error('没有可播放的 URL');
+    }
+
+    await clearUrlSlideshowAlarm();
+    await setUrlSlideshowState({
+      ...createIdleUrlSlideshowState(),
+      running: true,
+      paused: false,
+      completed: false,
+      currentIndex: 0,
+      total: normalizedUrls.length,
+      currentUrl: normalizedUrls[0],
+      urls: normalizedUrls,
+      duration: Math.max(1, Math.round(duration || 10)),
+      tabId: urlSlideshowState.tabId,
+    });
+
+    await runUrlSlideshowStep(0);
+  }
+
+  async function pauseUrlSlideshow() {
+    if (!urlSlideshowState.running || urlSlideshowState.paused) return;
+    await clearUrlSlideshowAlarm();
+    await setUrlSlideshowState({ ...urlSlideshowState, paused: true });
+  }
+
+  async function resumeUrlSlideshow() {
+    if (!urlSlideshowState.running || !urlSlideshowState.paused) return;
+
+    const currentUrl = urlSlideshowState.currentUrl || urlSlideshowState.urls[urlSlideshowState.currentIndex];
+    if (!currentUrl) {
+      await stopUrlSlideshow();
+      return;
+    }
+
+    const tabId = await ensureUrlSlideshowTab(currentUrl, urlSlideshowState.tabId);
+    await setUrlSlideshowState({
+      ...urlSlideshowState,
+      paused: false,
+      currentUrl,
+      tabId,
+    });
+
+    if (!tabId) return;
+
+    await waitForTabLoad(tabId);
+    if (!urlSlideshowState.running || urlSlideshowState.paused) return;
+    await scheduleUrlSlideshowAdvance(urlSlideshowState.duration);
+  }
+
+  async function loadUrlSlideshowState() {
+    try {
+      const data = await browser.storage.local.get(URL_SLIDESHOW_STORAGE_KEY);
+      urlSlideshowState = normalizeUrlSlideshowState(data[URL_SLIDESHOW_STORAGE_KEY]);
+      if (urlSlideshowState.running && !urlSlideshowState.paused) {
+        await scheduleUrlSlideshowAdvance(urlSlideshowState.duration);
+      }
+    } catch (err) {
+      console.warn('[Hellcat] Url slideshow state load error:', err);
+      urlSlideshowState = createIdleUrlSlideshowState();
+    }
+  }
+
+  async function loadUrlScreenshotState() {
+    try {
+      const data = await browser.storage.local.get(URL_SCREENSHOT_STORAGE_KEY);
+      urlScreenshotState = normalizeUrlScreenshotState(data[URL_SCREENSHOT_STORAGE_KEY]);
+
+      if (urlScreenshotState.running) {
+        await setUrlScreenshotState({
+          ...urlScreenshotState,
+          running: false,
+          stopping: false,
+          currentUrl: '',
+          lastError: urlScreenshotState.lastError || '扩展已重启，截图任务未继续执行',
+          updatedAt: Date.now(),
+        });
+      }
+    } catch (err) {
+      console.warn('[Hellcat] Url screenshot state load error:', err);
+      urlScreenshotState = createIdleUrlScreenshotState();
+    }
+  }
+
   void loadAutoInjectScripts();
+  void loadUrlSlideshowState();
+  void loadUrlScreenshotState();
 
   browser.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local' || !changes.hellcatAutoInjectScripts) return;
-    autoInjectScriptsLoaded = true;
-    autoInjectScripts = Array.isArray(changes.hellcatAutoInjectScripts.newValue)
-      ? changes.hellcatAutoInjectScripts.newValue as AutoInjectScript[]
-      : [];
+    if (areaName !== 'local') return;
+
+    if (changes.hellcatAutoInjectScripts) {
+      autoInjectScriptsLoaded = true;
+      autoInjectScripts = Array.isArray(changes.hellcatAutoInjectScripts.newValue)
+        ? changes.hellcatAutoInjectScripts.newValue as AutoInjectScript[]
+        : [];
+    }
+
+    if (changes[URL_SLIDESHOW_STORAGE_KEY]) {
+      urlSlideshowState = normalizeUrlSlideshowState(changes[URL_SLIDESHOW_STORAGE_KEY].newValue);
+    }
+
+    if (changes[URL_SCREENSHOT_STORAGE_KEY]) {
+      urlScreenshotState = normalizeUrlScreenshotState(changes[URL_SCREENSHOT_STORAGE_KEY].newValue);
+    }
+  });
+
+  browser.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === URL_SLIDESHOW_ALARM_NAME) {
+      void advanceUrlSlideshow();
+    }
+  });
+
+  browser.tabs.onRemoved.addListener((tabId) => {
+    if (urlSlideshowState.tabId === tabId) {
+      void setUrlSlideshowState({ ...urlSlideshowState, tabId: null });
+    }
   });
 
   // ─── 自动注入：页面开始加载时尽早注入启用的脚本 ───────────────
@@ -105,6 +629,84 @@ export default defineBackground(() => {
         .catch(() => sendResponse({ content: null }));
       return true; // 异步响应
     }
+
+    if (
+      message.action === 'getUrlSlideshowState'
+      || message.action === 'startUrlSlideshow'
+      || message.action === 'pauseUrlSlideshow'
+      || message.action === 'resumeUrlSlideshow'
+      || message.action === 'stopUrlSlideshow'
+    ) {
+      void (async () => {
+        try {
+          switch (message.action) {
+            case 'getUrlSlideshowState':
+              sendResponse({ success: true, state: urlSlideshowState });
+              return;
+            case 'startUrlSlideshow':
+              await startUrlSlideshow(message.urls ?? [], message.duration ?? 10);
+              sendResponse({ success: true, state: urlSlideshowState });
+              return;
+            case 'pauseUrlSlideshow':
+              await pauseUrlSlideshow();
+              sendResponse({ success: true, state: urlSlideshowState });
+              return;
+            case 'resumeUrlSlideshow':
+              await resumeUrlSlideshow();
+              sendResponse({ success: true, state: urlSlideshowState });
+              return;
+            case 'stopUrlSlideshow':
+              await stopUrlSlideshow();
+              sendResponse({ success: true, state: urlSlideshowState });
+              return;
+          }
+        } catch (err) {
+          sendResponse({
+            success: false,
+            error: err instanceof Error ? err.message : 'URL 幻灯片操作失败',
+            state: urlSlideshowState,
+          });
+        }
+      })();
+      return true;
+    }
+
+    if (
+      message.action === 'getUrlScreenshotState'
+      || message.action === 'startUrlScreenshot'
+      || message.action === 'stopUrlScreenshot'
+      || message.action === 'clearUrlScreenshotResults'
+    ) {
+      void (async () => {
+        try {
+          switch (message.action) {
+            case 'getUrlScreenshotState':
+              sendResponse({ success: true, state: urlScreenshotState });
+              return;
+            case 'startUrlScreenshot':
+              await startUrlScreenshot(message.urls ?? []);
+              sendResponse({ success: true, state: urlScreenshotState });
+              return;
+            case 'stopUrlScreenshot':
+              await stopUrlScreenshot();
+              sendResponse({ success: true, state: urlScreenshotState });
+              return;
+            case 'clearUrlScreenshotResults':
+              await resetUrlScreenshotState();
+              sendResponse({ success: true, state: urlScreenshotState });
+              return;
+          }
+        } catch (err) {
+          sendResponse({
+            success: false,
+            error: err instanceof Error ? err.message : 'URL 截图操作失败',
+            state: urlScreenshotState,
+          });
+        }
+      })();
+      return true;
+    }
+
     return false;
   });
 
