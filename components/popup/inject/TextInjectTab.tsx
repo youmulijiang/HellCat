@@ -71,7 +71,6 @@ export const TextInjectTab: React.FC<Props> = ({
           size="small"
           checked={partialMode}
           onChange={handleTogglePartial}
-          disabled={!text.trim()}
         />
       </div>
 

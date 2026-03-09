@@ -271,11 +271,15 @@ export default defineContentScript({
 
           // ========== Inject 模块请求 ==========
           } else if (request.action === 'injectScript') {
-            const script = document.createElement('script');
-            script.textContent = request.code;
-            document.documentElement.appendChild(script);
-            script.remove();
-            sendResponse({ status: 'ok' });
+            try {
+              const script = document.createElement('script');
+              script.textContent = request.code;
+              document.documentElement.appendChild(script);
+              script.remove();
+              sendResponse({ status: 'ok' });
+            } catch (err) {
+              sendResponse({ status: 'error', error: err instanceof Error ? err.message : String(err) });
+            }
 
           } else if (request.action === 'textFill') {
             const elements = getFormElements();

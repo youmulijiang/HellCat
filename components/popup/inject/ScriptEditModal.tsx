@@ -4,28 +4,36 @@ import type { InjectScript } from '@/types/inject';
 
 const { TextArea } = Input;
 
+/** 新建脚本默认代码模板 */
+const DEFAULT_CODE_TEMPLATE = `(function() {
+  console.log("Hellcat Injected");
+}());`;
+
 interface Props {
   open: boolean;
   script: InjectScript | null;
-  onSave: (name: string, code: string) => void;
+  onSave: (name: string, code: string) => void | Promise<void>;
+  confirmLoading?: boolean;
   onCancel: () => void;
 }
 
-export const ScriptEditModal: React.FC<Props> = ({ open, script, onSave, onCancel }) => {
+export const ScriptEditModal: React.FC<Props> = ({
+  open, script, onSave, confirmLoading = false, onCancel,
+}) => {
   const [form] = Form.useForm();
 
   useEffect(() => {
     if (open) {
       form.setFieldsValue({
         name: script?.name || '',
-        code: script?.code || '',
+        code: script?.code || (script ? '' : DEFAULT_CODE_TEMPLATE),
       });
     }
   }, [open, script, form]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
-    onSave(values.name, values.code);
+    await onSave(values.name, values.code);
     form.resetFields();
   };
 
@@ -35,6 +43,7 @@ export const ScriptEditModal: React.FC<Props> = ({ open, script, onSave, onCance
       open={open}
       onOk={handleOk}
       onCancel={onCancel}
+      confirmLoading={confirmLoading}
       okText="保存"
       cancelText="取消"
       width={400}

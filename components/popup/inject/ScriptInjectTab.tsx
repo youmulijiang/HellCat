@@ -16,8 +16,8 @@ interface Props {
   onUpdate: (id: string, updates: Partial<Pick<InjectScript, 'name' | 'code' | 'enabled'>>) => void | Promise<void>;
   onRemove: (id: string) => void | Promise<void>;
   onToggle: (id: string) => void | Promise<void>;
-  onInjectAll: () => Promise<void>;
-  onInjectSingle: (code: string) => Promise<void>;
+  onInjectAll: () => Promise<{ success: number; failed: number }>;
+  onInjectSingle: (code: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export const ScriptInjectTab: React.FC<Props> = ({
@@ -25,6 +25,8 @@ export const ScriptInjectTab: React.FC<Props> = ({
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingScript, setEditingScript] = useState<InjectScript | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [pendingToggleIds, setPendingToggleIds] = useState<string[]>([]);
 
   const handleAdd = () => {
     setEditingScript(null);
@@ -36,14 +38,34 @@ export const ScriptInjectTab: React.FC<Props> = ({
     setModalOpen(true);
   };
 
-  const handleSave = (name: string, code: string) => {
-    if (editingScript) {
-      onUpdate(editingScript.id, { name, code });
-    } else {
-      onAdd(name, code);
+  const handleSave = async (name: string, code: string) => {
+    setSaving(true);
+    try {
+      if (editingScript) {
+        await onUpdate(editingScript.id, { name, code });
+      } else {
+        await onAdd(name, code);
+      }
+      setModalOpen(false);
+      message.success('已保存');
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '保存失败');
+    } finally {
+      setSaving(false);
     }
-    setModalOpen(false);
-    message.success('已保存');
+  };
+
+  const handleToggle = async (id: string) => {
+    if (pendingToggleIds.includes(id)) return;
+
+    setPendingToggleIds(prev => [...prev, id]);
+    try {
+      await onToggle(id);
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '切换自动注入状态失败');
+    } finally {
+      setPendingToggleIds(prev => prev.filter(item => item !== id));
+    }
   };
 
   const handleInjectAll = async () => {
@@ -52,13 +74,21 @@ export const ScriptInjectTab: React.FC<Props> = ({
       message.warning('没有启用的脚本');
       return;
     }
-    await onInjectAll();
-    message.success(`已注入 ${enabledCount} 个脚本`);
+    const result = await onInjectAll();
+    if (result.failed === 0) {
+      message.success(`已注入 ${result.success} 个脚本`);
+    } else {
+      message.warning(`成功 ${result.success} 个，失败 ${result.failed} 个`);
+    }
   };
 
   const handleRunSingle = async (script: InjectScript) => {
-    await onInjectSingle(script.code);
-    message.success(`已执行: ${script.name}`);
+    const result = await onInjectSingle(script.code);
+    if (result.ok) {
+      message.success(`已执行: ${script.name}`);
+    } else {
+      message.error(`执行失败: ${result.error || '未知错误'}`);
+    }
   };
 
   return (
@@ -89,7 +119,14 @@ export const ScriptInjectTab: React.FC<Props> = ({
               className="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded border border-gray-100 hover:border-blue-200 transition-colors"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <Switch size="small" checked={script.enabled} onChange={() => onToggle(script.id)} />
+                <Tooltip title="自动执行脚本" placement="top">
+                  <Switch
+                    size="small"
+                    checked={script.enabled}
+                    loading={pendingToggleIds.includes(script.id)}
+                    onChange={() => void handleToggle(script.id)}
+                  />
+                </Tooltip>
                 <span className="text-xs truncate" title={script.name}>{script.name}</span>
               </div>
               <div className="flex items-center gap-0.5 shrink-0">
@@ -114,6 +151,7 @@ export const ScriptInjectTab: React.FC<Props> = ({
         open={modalOpen}
         script={editingScript}
         onSave={handleSave}
+        confirmLoading={saving}
         onCancel={() => setModalOpen(false)}
       />
     </div>

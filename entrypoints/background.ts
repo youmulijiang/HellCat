@@ -7,6 +7,93 @@ import type { HttpMethod, HttpHeader } from '@/types/packet';
 export default defineBackground(() => {
   console.log('[Hellcat] Background started', { id: browser.runtime.id });
 
+  type AutoInjectScript = {
+    id: string;
+    name: string;
+    code: string;
+  };
+
+  let autoInjectScripts: AutoInjectScript[] = [];
+  let autoInjectScriptsLoaded = false;
+
+  const isInjectableUrl = (url?: string) => Boolean(url && /^https?:\/\//.test(url));
+
+  async function loadAutoInjectScripts() {
+    if (autoInjectScriptsLoaded) return autoInjectScripts;
+    try {
+      const data = await browser.storage.local.get('hellcatAutoInjectScripts');
+      autoInjectScripts = Array.isArray(data.hellcatAutoInjectScripts)
+        ? data.hellcatAutoInjectScripts as AutoInjectScript[]
+        : [];
+    } catch (err) {
+      console.warn('[Hellcat] Auto-inject storage read error:', err);
+      autoInjectScripts = [];
+    } finally {
+      autoInjectScriptsLoaded = true;
+    }
+    return autoInjectScripts;
+  }
+
+  void loadAutoInjectScripts();
+
+  browser.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local' || !changes.hellcatAutoInjectScripts) return;
+    autoInjectScriptsLoaded = true;
+    autoInjectScripts = Array.isArray(changes.hellcatAutoInjectScripts.newValue)
+      ? changes.hellcatAutoInjectScripts.newValue as AutoInjectScript[]
+      : [];
+  });
+
+  // ─── 自动注入：页面开始加载时尽早注入启用的脚本 ───────────────
+  browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+    if (changeInfo.status !== 'loading') return;
+    if (!isInjectableUrl(tab.url)) return;
+
+    const scripts = autoInjectScriptsLoaded ? autoInjectScripts : await loadAutoInjectScripts();
+    if (scripts.length === 0) return;
+
+    for (const script of scripts) {
+      try {
+        await browser.scripting.executeScript({
+          target: { tabId },
+          func: (code: string) => {
+            const mountAndRun = () => {
+              const parent = document.head || document.documentElement || document.body;
+              if (!parent) return false;
+
+              const el = document.createElement('script');
+              el.textContent = code;
+              parent.appendChild(el);
+              el.remove();
+              return true;
+            };
+
+            try {
+              if (mountAndRun()) return;
+
+              const observer = new MutationObserver(() => {
+                if (mountAndRun()) observer.disconnect();
+              });
+
+              observer.observe(document, { childList: true, subtree: true });
+              window.addEventListener('DOMContentLoaded', () => {
+                if (mountAndRun()) observer.disconnect();
+              }, { once: true });
+            } catch (e) {
+              console.error('[Hellcat] Auto-inject error:', e);
+            }
+          },
+          args: [script.code],
+          world: 'MAIN',
+          injectImmediately: true,
+        });
+        console.log(`[Hellcat] Auto-injected: ${script.name} into tab ${tabId}`);
+      } catch (err) {
+        console.warn(`[Hellcat] Failed to auto-inject "${script.name}" into tab ${tabId}:`, err);
+      }
+    }
+  });
+
   /**
    * 监听来自 content script 的 fetchJsContent 请求
    */
