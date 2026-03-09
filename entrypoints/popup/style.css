@@ -16,3 +16,20 @@ html, body, #root {
   color: #333;
   background-color: #fff;
 }
+
+/* Popup Tabs 布局：Tab 栏固定，内容区滚动 */
+#root .ant-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#root .ant-tabs > .ant-tabs-nav {
+  flex-shrink: 0;
+}
+
+#root .ant-tabs > .ant-tabs-content-holder {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}

@@ -30,6 +30,9 @@ const ApiTesterLayout = lazy(() =>
 const WebSocketLayout = lazy(() =>
   import('@/components/websocket/WebSocketLayout').then((m) => ({ default: m.WebSocketLayout })),
 );
+const ReportLayout = lazy(() =>
+  import('@/components/report/ReportLayout').then((m) => ({ default: m.ReportLayout })),
+);
 
 /** 懒加载 fallback */
 const LazyFallback = (
@@ -67,6 +70,8 @@ const App: React.FC = () => {
         return <ApiTesterLayout />;
       case 'websocket':
         return <WebSocketLayout />;
+      case 'data-store':
+        return <ReportLayout />;
       default:
         return (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">

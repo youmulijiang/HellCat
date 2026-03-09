@@ -61,6 +61,44 @@ export interface StopWsMonitorMessage {
   tabId: number;
 }
 
+/** 通过 WebSocket 连接发送/重放消息 */
+export interface SendWsMessage {
+  type: 'SEND_WS_MESSAGE';
+  tabId: number;
+  /** 目标 WebSocket 连接 URL */
+  url: string;
+  /** 要发送的数据 */
+  data: string;
+}
+
+/** 开启 WebSocket 拦截 */
+export interface StartWsInterceptMessage {
+  type: 'START_WS_INTERCEPT';
+  tabId: number;
+}
+
+/** 关闭 WebSocket 拦截 */
+export interface StopWsInterceptMessage {
+  type: 'STOP_WS_INTERCEPT';
+  tabId: number;
+}
+
+/** 放行被拦截的 WS 帧（可选修改数据） */
+export interface ForwardWsFrameMessage {
+  type: 'FORWARD_WS_FRAME';
+  tabId: number;
+  interceptId: string;
+  /** 修改后的数据（不传则使用原始数据） */
+  data?: string;
+}
+
+/** 丢弃被拦截的 WS 帧 */
+export interface DropWsFrameMessage {
+  type: 'DROP_WS_FRAME';
+  tabId: number;
+  interceptId: string;
+}
+
 /** 所有从 DevTools → Background 的消息 */
 export type DevToolsToBackgroundMessage =
   | StartInterceptMessage
@@ -70,7 +108,12 @@ export type DevToolsToBackgroundMessage =
   | DropRequestMessage
   | SendRequestMessage
   | StartWsMonitorMessage
-  | StopWsMonitorMessage;
+  | StopWsMonitorMessage
+  | SendWsMessage
+  | StartWsInterceptMessage
+  | StopWsInterceptMessage
+  | ForwardWsFrameMessage
+  | DropWsFrameMessage;
 
 /**
  * Background → DevTools 面板 消息
@@ -156,6 +199,30 @@ export interface WsMonitorStatusMessage {
   tabId: number;
 }
 
+/** WebSocket 消息发送成功 */
+export interface WsSendResultMessage {
+  type: 'WS_SEND_RESULT';
+  success: boolean;
+  error?: string;
+}
+
+/** WebSocket 拦截状态变更 */
+export interface WsInterceptStatusMessage {
+  type: 'WS_INTERCEPT_STATUS';
+  active: boolean;
+  tabId: number;
+}
+
+/** WebSocket 帧被拦截 */
+export interface WsFrameInterceptedMessage {
+  type: 'WS_FRAME_INTERCEPTED';
+  interceptId: string;
+  direction: 'sent' | 'received';
+  data: string;
+  url: string;
+  timestamp: number;
+}
+
 /** 所有从 Background → DevTools 的消息 */
 export type BackgroundToDevToolsMessage =
   | RequestInterceptedMessage
@@ -166,5 +233,8 @@ export type BackgroundToDevToolsMessage =
   | WsConnectionClosedMessage
   | WsFrameMessage
   | WsFrameErrorMessage
-  | WsMonitorStatusMessage;
+  | WsMonitorStatusMessage
+  | WsSendResultMessage
+  | WsInterceptStatusMessage
+  | WsFrameInterceptedMessage;
 

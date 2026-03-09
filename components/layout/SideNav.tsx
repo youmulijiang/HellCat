@@ -4,7 +4,7 @@ import {
   SendOutlined,
   BugOutlined,
   ApiOutlined,
-  DatabaseOutlined,
+  FileTextOutlined,
   SettingOutlined,
   CodeOutlined,
   ExperimentOutlined,
@@ -24,15 +24,15 @@ interface NavModule {
 /** 可用模块列表 */
 const NAV_MODULES: NavModule[] = [
   { key: 'packet-replay', label: '抓包/重放', icon: <SendOutlined /> },
-  { key: 'codec', label: '编码/加密', icon: <LockOutlined /> },
+  { key: 'websocket', label: 'WS测试', icon: <SwapOutlined /> },
+  { key: 'api-test', label: 'API测试', icon: <ApiOutlined /> },
   { key: 'vulnerability', label: '漏洞扫描', icon: <BugOutlined /> },
-  { key: 'websocket', label: 'WebSocket 调试', icon: <SwapOutlined /> },
-  { key: 'api-test', label: 'API 测试', icon: <ApiOutlined /> },
-  { key: 'payload-store', label: 'Payload 存储', icon: <CodeOutlined /> },
+  { key: 'codec', label: '加密解密', icon: <LockOutlined /> },
+  { key: 'payload-store', label: 'Payload存储', icon: <CodeOutlined /> },
   { key: 'data-generator', label: '数据生成', icon: <ExperimentOutlined /> },
-  { key: 'diff', label: 'Diff 比对', icon: <DiffOutlined /> },
+  { key: 'diff', label: 'Diff', icon: <DiffOutlined /> },
   { key: 'misc', label: '杂项工具', icon: <ToolOutlined /> },
-  { key: 'data-store', label: '数据存储', icon: <DatabaseOutlined /> },
+  { key: 'data-store', label: '报告编写', icon: <FileTextOutlined /> },
   { key: 'settings', label: '设置', icon: <SettingOutlined /> },
 ];
 

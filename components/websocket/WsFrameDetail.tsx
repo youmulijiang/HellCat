@@ -1,7 +1,15 @@
-import React, { useMemo } from 'react';
-import { Button, Tabs, message } from 'antd';
-import { CopyOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import React, { useMemo, useState } from 'react';
+import { Button, Tabs, Tooltip, message } from 'antd';
+import {
+  CopyOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  SendOutlined,
+  EditOutlined,
+  UndoOutlined,
+} from '@ant-design/icons';
 import { useWsStore } from '@/stores/useWsStore';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 /** 尝试格式化 JSON */
 function tryFormatJson(data: string): { formatted: string; isJson: boolean } {
@@ -36,12 +44,22 @@ export const WsFrameDetail: React.FC = () => {
   const selectedFrameId = useWsStore((s) => s.selectedFrameId);
   const selectedConnectionId = useWsStore((s) => s.selectedConnectionId);
   const frames = useWsStore((s) => s.frames);
+  const connections = useWsStore((s) => s.connections);
+  const editedFrameData = useWsStore((s) => s.editedFrameData);
+  const setEditedFrameData = useWsStore((s) => s.setEditedFrameData);
+  const { sendWsMessage } = useWebSocket();
+  const [isEditing, setIsEditing] = useState(false);
 
   const frame = useMemo(() => {
     if (!selectedConnectionId || !selectedFrameId) return null;
     const connectionFrames = frames.get(selectedConnectionId) ?? [];
     return connectionFrames.find((f) => f.id === selectedFrameId) ?? null;
   }, [selectedConnectionId, selectedFrameId, frames]);
+
+  const connection = useMemo(() => {
+    if (!selectedConnectionId) return null;
+    return connections.find((c) => c.requestId === selectedConnectionId) ?? null;
+  }, [selectedConnectionId, connections]);
 
   if (!frame) {
     return (
@@ -51,32 +69,77 @@ export const WsFrameDetail: React.FC = () => {
     );
   }
 
-  const { formatted, isJson } = tryFormatJson(frame.data);
-  const hexView = toHexView(frame.data);
+  const currentData = editedFrameData ?? frame.data;
+  const { formatted, isJson } = tryFormatJson(currentData);
+  const hexView = toHexView(currentData);
   const isSent = frame.direction === 'sent';
+  const hasEdited = editedFrameData !== null;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(frame.data).then(() => message.success('已复制'));
+    navigator.clipboard.writeText(currentData).then(() => message.success('已复制'));
+  };
+
+  const handleSend = () => {
+    if (!connection) {
+      message.error('未找到对应的 WebSocket 连接');
+      return;
+    }
+    const dataToSend = editedFrameData ?? frame.data;
+    sendWsMessage(connection.url, dataToSend);
+  };
+
+  const handleToggleEdit = () => {
+    if (isEditing) {
+      // 退出编辑模式
+      setIsEditing(false);
+    } else {
+      // 进入编辑模式，初始化编辑数据
+      if (editedFrameData === null) {
+        setEditedFrameData(frame.data);
+      }
+      setIsEditing(true);
+    }
+  };
+
+  const handleReset = () => {
+    setEditedFrameData(null);
+    setIsEditing(false);
+  };
+
+  const handleDataChange = (value: string) => {
+    setEditedFrameData(value);
+  };
+
+  /** 根据是否编辑模式渲染内容 */
+  const renderEditableContent = (content: string) => {
+    if (isEditing) {
+      return (
+        <textarea
+          className="w-full h-full resize-none border-none outline-none p-3
+            text-xs font-mono leading-5 text-gray-700 bg-gray-50/50"
+          value={editedFrameData ?? frame.data}
+          onChange={(e) => handleDataChange(e.target.value)}
+          spellCheck={false}
+        />
+      );
+    }
+    return (
+      <pre className="text-xs font-mono text-gray-700 whitespace-pre-wrap break-all p-3 m-0 overflow-y-auto h-full bg-gray-50/50">
+        {content}
+      </pre>
+    );
   };
 
   const tabItems = [
     {
       key: 'data',
       label: isJson ? 'JSON' : '数据',
-      children: (
-        <pre className="text-xs font-mono text-gray-700 whitespace-pre-wrap break-all p-3 m-0 overflow-y-auto h-full bg-gray-50/50">
-          {formatted}
-        </pre>
-      ),
+      children: renderEditableContent(formatted),
     },
     {
       key: 'raw',
       label: 'Raw',
-      children: (
-        <pre className="text-xs font-mono text-gray-700 whitespace-pre-wrap break-all p-3 m-0 overflow-y-auto h-full bg-gray-50/50">
-          {frame.data}
-        </pre>
-      ),
+      children: renderEditableContent(currentData),
     },
     {
       key: 'hex',
@@ -101,11 +164,38 @@ export const WsFrameDetail: React.FC = () => {
           )}
           <span className="text-gray-500">
             {isSent ? '发送' : '接收'} · {frame.dataType} · opcode:{frame.opcode} · {frame.length}B
+            {hasEdited && <span className="text-orange-500 ml-1">(已编辑)</span>}
           </span>
         </div>
-        <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopy}>
-          复制
-        </Button>
+        <div className="flex items-center gap-1">
+          <Tooltip title={isEditing ? '退出编辑' : '编辑数据'}>
+            <Button
+              type={isEditing ? 'primary' : 'text'}
+              size="small"
+              icon={<EditOutlined />}
+              onClick={handleToggleEdit}
+            />
+          </Tooltip>
+          {hasEdited && (
+            <Tooltip title="重置编辑">
+              <Button type="text" size="small" icon={<UndoOutlined />} onClick={handleReset} />
+            </Tooltip>
+          )}
+          <Tooltip title="复制数据">
+            <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopy} />
+          </Tooltip>
+          <Tooltip title="发送/重放">
+            <Button
+              type="primary"
+              size="small"
+              icon={<SendOutlined />}
+              onClick={handleSend}
+              disabled={!connection}
+            >
+              发送
+            </Button>
+          </Tooltip>
+        </div>
       </div>
 
       {/* 内容标签页 */}

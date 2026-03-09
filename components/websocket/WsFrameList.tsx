@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { Empty } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { Button, Empty, Tag } from 'antd';
+import { ArrowUpOutlined, ArrowDownOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { useWsStore } from '@/stores/useWsStore';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 /** 格式化时间戳为 HH:mm:ss.SSS */
 function formatTimestamp(ts: number): string {
@@ -33,6 +34,9 @@ export const WsFrameList: React.FC = () => {
   const autoScroll = useWsStore((s) => s.autoScroll);
   const frames = useWsStore((s) => s.frames);
   const filter = useWsStore((s) => s.filter);
+  const isIntercepting = useWsStore((s) => s.isIntercepting);
+  const pausedFrames = useWsStore((s) => s.pausedFrames);
+  const { forwardWsFrame, dropWsFrame } = useWebSocket();
   const listRef = useRef<HTMLDivElement>(null);
 
   /** 在组件内计算过滤后的帧列表 */
@@ -73,6 +77,59 @@ export const WsFrameList: React.FC = () => {
 
   return (
     <div ref={listRef} className="flex flex-col h-full overflow-y-auto">
+      {/* 被拦截的帧队列 */}
+      {isIntercepting && pausedFrames.length > 0 && (
+        <div className="border-b-2 border-orange-300 bg-orange-50/60">
+          <div className="flex items-center text-[10px] text-orange-600 font-medium px-3 py-1 border-b border-orange-200 sticky top-0 z-20 bg-orange-50">
+            <span className="flex-1">🚦 拦截队列 ({pausedFrames.length})</span>
+          </div>
+          {pausedFrames.map((pf) => {
+            const isSent = pf.direction === 'sent';
+            return (
+              <div
+                key={pf.interceptId}
+                className="flex items-center px-3 py-1.5 border-b border-orange-100 bg-orange-50/40 hover:bg-orange-100/50 transition-colors"
+              >
+                <span className="w-6 flex-shrink-0">
+                  {isSent ? (
+                    <ArrowUpOutlined className="text-green-500 text-[10px]" />
+                  ) : (
+                    <ArrowDownOutlined className="text-red-500 text-[10px]" />
+                  )}
+                </span>
+                <span className="w-24 flex-shrink-0 text-[10px] text-gray-400 font-mono">
+                  {formatTimestamp(pf.timestamp)}
+                </span>
+                <Tag color="orange" className="text-[10px] mr-1 leading-none py-0">{isSent ? '出站' : '入站'}</Tag>
+                <span className="flex-1 text-xs font-mono text-gray-600 break-all min-w-0 truncate">
+                  {previewData(pf.data, 60)}
+                </span>
+                <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<CheckOutlined />}
+                    className="text-[10px]"
+                    onClick={(e) => { e.stopPropagation(); forwardWsFrame(pf.interceptId); }}
+                  >
+                    放行
+                  </Button>
+                  <Button
+                    danger
+                    size="small"
+                    icon={<CloseOutlined />}
+                    className="text-[10px]"
+                    onClick={(e) => { e.stopPropagation(); dropWsFrame(pf.interceptId); }}
+                  >
+                    丢弃
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* 表头 */}
       <div className="flex items-center text-[10px] text-gray-400 font-medium px-3 py-1 border-b border-gray-100 bg-gray-50/50 sticky top-0 z-10">
         <span className="w-6 flex-shrink-0" />

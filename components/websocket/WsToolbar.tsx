@@ -6,6 +6,7 @@ import {
   ClearOutlined,
   DeleteOutlined,
   VerticalAlignBottomOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { useWsStore } from '@/stores/useWsStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -23,7 +24,7 @@ const DATA_TYPE_OPTIONS = [
 ];
 
 export const WsToolbar: React.FC = () => {
-  const { isMonitoring, toggleMonitor, clearAll } = useWebSocket();
+  const { isMonitoring, isIntercepting, toggleMonitor, toggleIntercept, clearAll } = useWebSocket();
   const filter = useWsStore((s) => s.filter);
   const setFilter = useWsStore((s) => s.setFilter);
   const autoScroll = useWsStore((s) => s.autoScroll);
@@ -43,6 +44,20 @@ export const WsToolbar: React.FC = () => {
           onClick={toggleMonitor}
         >
           {isMonitoring ? '停止' : '监控'}
+        </Button>
+      </Tooltip>
+
+      {/* 拦截开关 */}
+      <Tooltip title={isIntercepting ? '关闭拦截' : '开启拦截（拦截出/入站 WS 帧）'}>
+        <Button
+          type={isIntercepting ? 'primary' : 'default'}
+          danger={isIntercepting}
+          size="small"
+          icon={<ApiOutlined />}
+          onClick={toggleIntercept}
+          disabled={!isMonitoring}
+        >
+          {isIntercepting ? '拦截中' : '拦截'}
         </Button>
       </Tooltip>
 

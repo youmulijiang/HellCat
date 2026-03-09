@@ -34,14 +34,9 @@ const LazyFallback = (
 /** Popup 选项卡定义 */
 const POPUP_TABS = [
   {
-    key: 'cookie',
-    label: 'Cookie操作',
-    children: <Suspense fallback={LazyFallback}><CookiePanel /></Suspense>,
-  },
-  {
-    key: 'url-opener',
-    label: 'URL多开',
-    children: <Suspense fallback={LazyFallback}><UrlOpenerPanel /></Suspense>,
+    key: 'info-collect',
+    label: '信息收集',
+    children: <Suspense fallback={LazyFallback}><InfoCollectPanel /></Suspense>,
   },
   {
     key: 'vue-crack',
@@ -49,14 +44,9 @@ const POPUP_TABS = [
     children: <Suspense fallback={LazyFallback}><VueCrackPanel /></Suspense>,
   },
   {
-    key: 'info-collect',
-    label: '信息收集',
-    children: <Suspense fallback={LazyFallback}><InfoCollectPanel /></Suspense>,
-  },
-  {
-    key: 'dork',
-    label: 'Dork',
-    children: <Suspense fallback={LazyFallback}><DorkPanel /></Suspense>,
+    key: 'proxy',
+    label: '代理',
+    children: <Suspense fallback={LazyFallback}><ProxyPanel /></Suspense>,
   },
   {
     key: 'inject',
@@ -64,9 +54,19 @@ const POPUP_TABS = [
     children: <Suspense fallback={LazyFallback}><InjectPanel /></Suspense>,
   },
   {
-    key: 'proxy',
-    label: '代理',
-    children: <Suspense fallback={LazyFallback}><ProxyPanel /></Suspense>,
+    key: 'cookie',
+    label: 'Cookie操作',
+    children: <Suspense fallback={LazyFallback}><CookiePanel /></Suspense>,
+  },
+  {
+    key: 'dork',
+    label: 'Dork',
+    children: <Suspense fallback={LazyFallback}><DorkPanel /></Suspense>,
+  },
+  {
+    key: 'url-opener',
+    label: 'URL多开',
+    children: <Suspense fallback={LazyFallback}><UrlOpenerPanel /></Suspense>,
   },
 ];
 
@@ -87,11 +87,11 @@ const App: React.FC = () => {
         },
       }}
     >
-      <div className="flex flex-col w-full h-full">
+      <div className="w-full h-full">
         <Tabs
-          defaultActiveKey="cookie"
+          defaultActiveKey="info-collect"
           size="small"
-          className="px-2 flex-1"
+          className="px-2 h-full"
           items={POPUP_TABS}
           tabBarStyle={{ marginBottom: 0 }}
         />

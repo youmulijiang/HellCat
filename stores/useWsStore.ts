@@ -6,6 +6,7 @@ import type {
   WsFrameFilter,
   WsFrameDirection,
   WsFrameDataType,
+  PausedWsFrame,
 } from '@/types/websocket';
 
 interface WsStoreState {
@@ -23,6 +24,12 @@ interface WsStoreState {
   isMonitoring: boolean;
   /** 是否自动滚动到最新帧 */
   autoScroll: boolean;
+  /** 编辑中的帧数据（null 表示未编辑） */
+  editedFrameData: string | null;
+  /** 是否正在拦截 WS 帧 */
+  isIntercepting: boolean;
+  /** 被拦截暂停的帧队列 */
+  pausedFrames: PausedWsFrame[];
 
   // ─── Actions ─────────────────────────────
 
@@ -55,6 +62,20 @@ interface WsStoreState {
   clearFrames: (connectionId: string) => void;
   /** 获取当前连接的过滤后帧列表 */
   getFilteredFrames: () => WsFrame[];
+  /** 设置编辑中的帧数据 */
+  setEditedFrameData: (data: string | null) => void;
+  /** 获取当前选中的帧 */
+  getSelectedFrame: () => WsFrame | null;
+  /** 设置拦截状态 */
+  setIntercepting: (active: boolean) => void;
+  /** 添加被拦截的帧 */
+  addPausedFrame: (frame: PausedWsFrame) => void;
+  /** 移除被拦截的帧 */
+  removePausedFrame: (interceptId: string) => void;
+  /** 更新被拦截帧的数据 */
+  updatePausedFrameData: (interceptId: string, data: string) => void;
+  /** 清空所有被拦截的帧 */
+  clearPausedFrames: () => void;
 }
 
 const DEFAULT_FILTER: WsFrameFilter = {
@@ -71,6 +92,9 @@ export const useWsStore = create<WsStoreState>((set, get) => ({
   filter: { ...DEFAULT_FILTER },
   isMonitoring: false,
   autoScroll: true,
+  editedFrameData: null,
+  isIntercepting: false,
+  pausedFrames: [],
 
   addConnection: (requestId, url, initiator) => {
     set((state) => ({
@@ -129,8 +153,8 @@ export const useWsStore = create<WsStoreState>((set, get) => ({
     });
   },
 
-  selectConnection: (id) => set({ selectedConnectionId: id, selectedFrameId: null }),
-  selectFrame: (id) => set({ selectedFrameId: id }),
+  selectConnection: (id) => set({ selectedConnectionId: id, selectedFrameId: null, editedFrameData: null }),
+  selectFrame: (id) => set({ selectedFrameId: id, editedFrameData: null }),
   setFilter: (partial) => set((s) => ({ filter: { ...s.filter, ...partial } })),
   setMonitoring: (active) => set({ isMonitoring: active }),
   setAutoScroll: (auto) => set({ autoScroll: auto }),
@@ -150,6 +174,15 @@ export const useWsStore = create<WsStoreState>((set, get) => ({
       return { frames: newFrames, selectedFrameId: null };
     }),
 
+  setEditedFrameData: (data) => set({ editedFrameData: data }),
+
+  getSelectedFrame: () => {
+    const { selectedConnectionId, selectedFrameId, frames } = get();
+    if (!selectedConnectionId || !selectedFrameId) return null;
+    const connectionFrames = frames.get(selectedConnectionId) ?? [];
+    return connectionFrames.find((f) => f.id === selectedFrameId) ?? null;
+  },
+
   getFilteredFrames: () => {
     const { selectedConnectionId, frames, filter } = get();
     if (!selectedConnectionId) return [];
@@ -162,5 +195,24 @@ export const useWsStore = create<WsStoreState>((set, get) => ({
       return true;
     });
   },
+
+  setIntercepting: (active) => set({ isIntercepting: active, pausedFrames: active ? [] : [] }),
+
+  addPausedFrame: (frame) =>
+    set((state) => ({ pausedFrames: [...state.pausedFrames, frame] })),
+
+  removePausedFrame: (interceptId) =>
+    set((state) => ({
+      pausedFrames: state.pausedFrames.filter((f) => f.interceptId !== interceptId),
+    })),
+
+  updatePausedFrameData: (interceptId, data) =>
+    set((state) => ({
+      pausedFrames: state.pausedFrames.map((f) =>
+        f.interceptId === interceptId ? { ...f, data } : f,
+      ),
+    })),
+
+  clearPausedFrames: () => set({ pausedFrames: [] }),
 }));
 

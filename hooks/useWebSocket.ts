@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { message } from 'antd';
 import { useWsStore } from '@/stores/useWsStore';
 import type {
   DevToolsToBackgroundMessage,
@@ -14,6 +15,7 @@ import type {
  */
 export function useWebSocket() {
   const isMonitoring = useWsStore((s) => s.isMonitoring);
+  const isIntercepting = useWsStore((s) => s.isIntercepting);
   const clearAll = useWsStore((s) => s.clearAll);
 
   const portRef = useRef<chrome.runtime.Port | null>(null);
@@ -61,6 +63,26 @@ export function useWebSocket() {
             Date.now() / 1000,
           );
           break;
+        case 'WS_SEND_RESULT':
+          if (msg.success) {
+            message.success('WebSocket 消息已发送');
+          } else {
+            message.error(`发送失败: ${msg.error || '未知错误'}`);
+          }
+          break;
+        case 'WS_INTERCEPT_STATUS':
+          store.setIntercepting(msg.active);
+          if (!msg.active) store.clearPausedFrames?.();
+          break;
+        case 'WS_FRAME_INTERCEPTED':
+          store.addPausedFrame({
+            interceptId: msg.interceptId,
+            direction: msg.direction,
+            data: msg.data,
+            url: msg.url,
+            timestamp: msg.timestamp,
+          });
+          break;
       }
     });
 
@@ -101,6 +123,56 @@ export function useWebSocket() {
     }
   }, [startMonitor, stopMonitor]);
 
+  /** 发送/重放 WebSocket 消息 */
+  const sendWsMessage = useCallback(
+    (url: string, data: string) => {
+      const tabId = browser.devtools.inspectedWindow.tabId;
+      sendMessage({ type: 'SEND_WS_MESSAGE', tabId, url, data });
+    },
+    [sendMessage],
+  );
+
+  /** 开始 WS 拦截 */
+  const startIntercept = useCallback(() => {
+    const tabId = browser.devtools.inspectedWindow.tabId;
+    sendMessage({ type: 'START_WS_INTERCEPT', tabId });
+  }, [sendMessage]);
+
+  /** 停止 WS 拦截 */
+  const stopIntercept = useCallback(() => {
+    const tabId = browser.devtools.inspectedWindow.tabId;
+    sendMessage({ type: 'STOP_WS_INTERCEPT', tabId });
+  }, [sendMessage]);
+
+  /** 切换 WS 拦截 */
+  const toggleIntercept = useCallback(() => {
+    if (useWsStore.getState().isIntercepting) {
+      stopIntercept();
+    } else {
+      startIntercept();
+    }
+  }, [startIntercept, stopIntercept]);
+
+  /** 放行被拦截的帧 */
+  const forwardWsFrame = useCallback(
+    (interceptId: string, data?: string) => {
+      const tabId = browser.devtools.inspectedWindow.tabId;
+      sendMessage({ type: 'FORWARD_WS_FRAME', tabId, interceptId, data });
+      useWsStore.getState().removePausedFrame(interceptId);
+    },
+    [sendMessage],
+  );
+
+  /** 丢弃被拦截的帧 */
+  const dropWsFrame = useCallback(
+    (interceptId: string) => {
+      const tabId = browser.devtools.inspectedWindow.tabId;
+      sendMessage({ type: 'DROP_WS_FRAME', tabId, interceptId });
+      useWsStore.getState().removePausedFrame(interceptId);
+    },
+    [sendMessage],
+  );
+
   /** 组件卸载时停止监控并断开 port */
   useEffect(() => {
     return () => {
@@ -108,6 +180,7 @@ export function useWebSocket() {
         try {
           const tabId = browser.devtools.inspectedWindow.tabId;
           portRef.current.postMessage({ type: 'STOP_WS_MONITOR', tabId });
+          portRef.current.postMessage({ type: 'STOP_WS_INTERCEPT', tabId });
         } catch { /* port may already be disconnected */ }
         try {
           portRef.current.disconnect();
@@ -119,10 +192,17 @@ export function useWebSocket() {
 
   return {
     isMonitoring,
+    isIntercepting,
     startMonitor,
     stopMonitor,
     toggleMonitor,
     clearAll,
+    sendWsMessage,
+    startIntercept,
+    stopIntercept,
+    toggleIntercept,
+    forwardWsFrame,
+    dropWsFrame,
   };
 }
 

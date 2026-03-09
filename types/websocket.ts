@@ -63,3 +63,17 @@ export interface WsFrameFilter {
   dataType: 'all' | WsFrameDataType;
 }
 
+/** 被拦截的 WebSocket 帧 */
+export interface PausedWsFrame {
+  /** 拦截 ID（由注入脚本生成） */
+  interceptId: string;
+  /** 方向 */
+  direction: WsFrameDirection;
+  /** 数据内容 */
+  data: string;
+  /** 所属连接 URL */
+  url: string;
+  /** 时间戳 */
+  timestamp: number;
+}
+
