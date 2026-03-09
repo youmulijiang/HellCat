@@ -11,11 +11,11 @@ import { ScreenshotTab } from './ScreenshotTab';
 
 export const UrlOpenerPanel: React.FC = () => {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       <Tabs
         defaultActiveKey="multi-open"
         size="small"
-        className="h-full [&_.ant-tabs-content]:h-full [&_.ant-tabs-content-holder]:flex-1 [&_.ant-tabs-content-holder]:min-h-0 [&_.ant-tabs-tabpane]:h-full"
+        className="flex h-full min-h-0 flex-col [&_.ant-tabs-content]:h-full [&_.ant-tabs-content-holder]:flex-1 [&_.ant-tabs-content-holder]:min-h-0 [&_.ant-tabs-content-holder]:overflow-hidden [&_.ant-tabs-tabpane]:h-full"
         items={[
           {
             key: 'multi-open',

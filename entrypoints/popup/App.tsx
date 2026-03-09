@@ -87,11 +87,11 @@ const App: React.FC = () => {
         },
       }}
     >
-      <div className="w-full h-full">
+      <div className="flex h-full min-h-0 w-full flex-col">
         <Tabs
           defaultActiveKey="info-collect"
           size="small"
-          className="px-2 h-full"
+          className="flex h-full min-h-0 flex-col px-2 [&_.ant-tabs-content]:h-full [&_.ant-tabs-content-holder]:min-h-0 [&_.ant-tabs-tabpane]:h-full"
           items={POPUP_TABS}
           tabBarStyle={{ marginBottom: 0 }}
         />

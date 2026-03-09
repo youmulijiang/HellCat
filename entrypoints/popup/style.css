@@ -8,6 +8,7 @@
 
 html, body, #root {
   width: 420px;
+  height: 580px;
   min-height: 480px;
   max-height: 580px;
   overflow: hidden;
@@ -31,5 +32,17 @@ html, body, #root {
 #root .ant-tabs > .ant-tabs-content-holder {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
+}
+
+#root .ant-tabs-content,
+#root .ant-tabs-tabpane,
+#root .ant-tabs-tabpane-active {
+  height: 100%;
+  min-height: 0;
+}
+
+#root .ant-tabs-tabpane-active {
+  display: flex;
+  flex-direction: column;
 }

@@ -117,7 +117,7 @@ export const MultiOpenTab: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-2">
       {/* 工具栏 */}
       <div className="flex items-center gap-1 flex-wrap">
         <Tooltip title="获取所有标签页URL">
@@ -143,7 +143,7 @@ export const MultiOpenTab: React.FC = () => {
       </div>
 
       {/* URL 输入区 */}
-      <div className="flex-1 min-h-0 flex flex-col [&_.ant-input]:!flex-1 [&_.ant-input]:!resize-none">
+      <div className="flex-1 min-h-0 flex flex-col [&_.ant-input]:!min-h-[240px] [&_.ant-input]:!flex-1 [&_.ant-input]:!resize-none">
         <TextArea
           value={text}
           onChange={(e) => setText(e.target.value)}
