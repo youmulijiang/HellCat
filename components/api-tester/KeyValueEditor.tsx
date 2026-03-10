@@ -47,9 +47,9 @@ export const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
   }, [items, onChange]);
 
   return (
-    <div className="flex flex-col text-xs">
+    <div className="flex flex-col text-sm">
       {/* 表头 */}
-      <div className="flex items-center gap-1 px-1 py-0.5 bg-gray-50 border-b border-gray-200 text-[10px] text-gray-400 font-medium">
+      <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium text-gray-400">
         <div className="w-5" />
         <div className="flex-1 min-w-0">Key</div>
         <div className="flex-1 min-w-0">Value</div>
@@ -59,41 +59,37 @@ export const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
 
       {/* 行 */}
       {items.map((item) => (
-        <div key={item.id} className="flex items-center gap-1 px-1 py-0.5 border-b border-gray-100 hover:bg-blue-50/30 group">
+        <div key={item.id} className="group flex items-center gap-1 border-b border-gray-100 px-2 py-1.5 hover:bg-blue-50/30">
           <Checkbox
             checked={item.enabled}
             onChange={(e) => updateItem(item.id, 'enabled', e.target.checked)}
             className="w-5"
           />
           <Input
-            size="small"
             variant="borderless"
             placeholder={keyPlaceholder}
             value={item.key}
             onChange={(e) => updateItem(item.id, 'key', e.target.value)}
-            className="flex-1 min-w-0 text-xs"
+            className="flex-1 min-w-0 text-sm"
           />
           <Input
-            size="small"
             variant="borderless"
             placeholder={valuePlaceholder}
             value={item.value}
             onChange={(e) => updateItem(item.id, 'value', e.target.value)}
-            className="flex-1 min-w-0 text-xs"
+            className="flex-1 min-w-0 text-sm"
           />
           {showDescription && (
             <Input
-              size="small"
               variant="borderless"
               placeholder="Description"
               value={item.description ?? ''}
               onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-              className="flex-1 min-w-0 text-xs"
+              className="flex-1 min-w-0 text-sm"
             />
           )}
           <Button
             type="text"
-            size="small"
             icon={<DeleteOutlined />}
             onClick={() => removeItem(item.id)}
             className="w-6 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"
@@ -103,7 +99,7 @@ export const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
 
       {/* 添加按钮 */}
       <div className="px-1 py-1">
-        <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={addItem} className="text-xs w-full">
+        <Button type="dashed" icon={<PlusOutlined />} onClick={addItem} className="w-full text-sm">
           添加
         </Button>
       </div>

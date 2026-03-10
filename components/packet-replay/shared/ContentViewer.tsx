@@ -28,7 +28,7 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
       <div className="flex-1 overflow-hidden p-0 bg-white">
         <textarea
           className="w-full h-full resize-none border-none outline-none p-2
-            text-xs font-mono leading-5 text-gray-700 bg-white"
+            text-sm font-mono leading-6 text-gray-700 bg-white"
           value={content}
           onChange={(e) => onChange?.(e.target.value)}
           spellCheck={false}
@@ -40,7 +40,7 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
   const renderContent = () => {
     if (!content) {
       return (
-        <div className="flex items-center justify-center h-full text-gray-400 text-xs">
+        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
           No data available
         </div>
       );
@@ -49,37 +49,37 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
     switch (viewType) {
       case 'Pretty':
         return (
-          <pre className="text-xs font-mono whitespace-pre-wrap break-all leading-5 text-gray-700">
+          <pre className="text-sm font-mono whitespace-pre-wrap break-all leading-6 text-gray-700">
             {content}
           </pre>
         );
       case 'Raw':
         return (
-          <pre className="text-xs font-mono whitespace-pre-wrap break-all leading-5 text-gray-600">
+          <pre className="text-sm font-mono whitespace-pre-wrap break-all leading-6 text-gray-600">
             {content}
           </pre>
         );
       case 'Hex':
         return (
-          <pre className="text-xs font-mono whitespace-pre leading-5 text-gray-600">
+          <pre className="text-sm font-mono whitespace-pre leading-6 text-gray-600">
             {formatHex(content)}
           </pre>
         );
       case 'Json':
         return (
-          <pre className="text-xs font-mono whitespace-pre-wrap break-all leading-5 text-gray-700">
+          <pre className="text-sm font-mono whitespace-pre-wrap break-all leading-6 text-gray-700">
             {formatJson(content)}
           </pre>
         );
       case 'Preview':
         return (
-          <div className="text-xs text-gray-700 p-1">
+          <div className="p-2 text-sm leading-6 text-gray-700">
             {content}
           </div>
         );
       default:
         return (
-          <pre className="text-xs font-mono whitespace-pre-wrap break-all leading-5 text-gray-700">
+          <pre className="text-sm font-mono whitespace-pre-wrap break-all leading-6 text-gray-700">
             {content}
           </pre>
         );
@@ -87,7 +87,7 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-auto p-2 bg-white">
+    <div className="flex-1 overflow-auto bg-white p-3">
       {renderContent()}
     </div>
   );

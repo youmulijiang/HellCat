@@ -46,21 +46,20 @@ export const RequestConfig: React.FC<RequestConfigProps> = ({
     <div className="flex flex-col gap-2">
       {/* Body 类型选择 */}
       <Radio.Group
-        size="small"
         value={bodyType}
         onChange={(e) => onBodyTypeChange(e.target.value)}
-        className="text-xs"
+        className="text-sm"
         optionType="button"
         buttonStyle="solid"
       >
         {Object.entries(BODY_TYPE_LABELS).map(([key, label]) => (
-          <Radio.Button key={key} value={key} className="text-[10px]">{label}</Radio.Button>
+          <Radio.Button key={key} value={key} className="text-[13px]">{label}</Radio.Button>
         ))}
       </Radio.Group>
 
       {/* Body 内容 */}
       {bodyType === 'none' ? (
-        <div className="text-xs text-gray-400 py-4 text-center">
+        <div className="py-4 text-center text-sm text-gray-400">
           This request does not have a body
         </div>
       ) : bodyType === 'form-urlencoded' || bodyType === 'form-data' ? (
@@ -81,7 +80,7 @@ export const RequestConfig: React.FC<RequestConfigProps> = ({
                 : 'Enter request body...'
           }
           autoSize={{ minRows: 6, maxRows: 20 }}
-          className="text-xs font-mono"
+          className="text-sm font-mono leading-6"
           style={{ resize: 'none' }}
         />
       )}
@@ -91,7 +90,7 @@ export const RequestConfig: React.FC<RequestConfigProps> = ({
   const tabItems = [
     {
       key: 'params',
-      label: <span className="text-xs">Params {params.filter((p) => p.enabled && p.key).length > 0 ? `(${params.filter((p) => p.enabled && p.key).length})` : ''}</span>,
+      label: <span className="text-sm">Params {params.filter((p) => p.enabled && p.key).length > 0 ? `(${params.filter((p) => p.enabled && p.key).length})` : ''}</span>,
       children: (
         <KeyValueEditor
           items={params}
@@ -104,7 +103,7 @@ export const RequestConfig: React.FC<RequestConfigProps> = ({
     },
     {
       key: 'headers',
-      label: <span className="text-xs">Headers {headers.filter((h) => h.enabled && h.key).length > 0 ? `(${headers.filter((h) => h.enabled && h.key).length})` : ''}</span>,
+      label: <span className="text-sm">Headers {headers.filter((h) => h.enabled && h.key).length > 0 ? `(${headers.filter((h) => h.enabled && h.key).length})` : ''}</span>,
       children: (
         <KeyValueEditor
           items={headers}
@@ -116,14 +115,13 @@ export const RequestConfig: React.FC<RequestConfigProps> = ({
     },
     {
       key: 'body',
-      label: <span className="text-xs">Body</span>,
+      label: <span className="text-sm">Body</span>,
       children: renderBodyContent(),
     },
   ];
 
   return (
     <Tabs
-      size="small"
       activeKey={activeTab}
       onChange={onActiveTabChange}
       items={tabItems}

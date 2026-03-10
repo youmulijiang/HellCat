@@ -50,32 +50,31 @@ export const TextInjectTab: React.FC<Props> = ({
     <div className="flex flex-col gap-3">
       {/* 填充文本输入 */}
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-gray-500">填充文本</span>
+        <span className="text-sm text-gray-500">填充文本</span>
         <TextArea
           rows={4}
           value={text}
           onChange={e => setText(e.target.value)}
           placeholder="输入要填充到表单中的文本内容..."
-          className="text-xs"
+          className="text-sm leading-6"
           spellCheck={false}
         />
       </div>
 
       {/* 模式切换 */}
-      <div className="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded border border-gray-100">
+      <div className="flex items-center justify-between rounded border border-gray-100 bg-gray-50 px-2 py-2">
         <div className="flex items-center gap-2">
           <SelectOutlined className="text-blue-500" />
-          <span className="text-xs">局部填充模式</span>
+          <span className="text-sm">局部填充模式</span>
         </div>
         <Switch
-          size="small"
           checked={partialMode}
           onChange={handleTogglePartial}
         />
       </div>
 
       {partialMode && (
-        <div className="text-[10px] text-orange-500 px-2">
+        <div className="px-2 text-xs leading-5 text-orange-500">
           ⚠️ 局部填充已开启：在页面中拖拽划出矩形区域，<strong>双击方框</strong>即可填充区域内的表单
         </div>
       )}
@@ -85,7 +84,6 @@ export const TextInjectTab: React.FC<Props> = ({
         <Tooltip title="填充所有表单字段">
           <Button
             type="primary"
-            size="small"
             icon={<FormOutlined />}
             onClick={handleBatchFill}
             disabled={partialMode}
@@ -97,7 +95,7 @@ export const TextInjectTab: React.FC<Props> = ({
       </div>
 
       {/* 提示说明 */}
-      <div className="text-[10px] text-gray-400 leading-4 px-1">
+      <div className="px-1 text-xs leading-5 text-gray-400">
         <p>• <strong>批量填充</strong>：将文本填充到页面所有可见的表单输入框</p>
         <p>• <strong>局部填充</strong>：开启后在页面拖拽划出矩形区域，仅填充区域内的表单</p>
         <p>• 支持 input、textarea、contenteditable 元素</p>

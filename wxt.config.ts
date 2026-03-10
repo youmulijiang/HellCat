@@ -5,6 +5,15 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
+    name: 'Hellcat',
+    description: '浏览器安全测试工具箱',
+    icons: {
+      16: '/icon/logo.png',
+      32: '/icon/logo.png',
+      48: '/icon/logo.png',
+      96: '/icon/logo.png',
+      128: '/icon/logo.png',
+    },
     permissions: ['debugger', 'cookies', 'activeTab', 'tabs', 'proxy', 'scripting', 'storage', 'alarms'],
     host_permissions: ['<all_urls>'],
     web_accessible_resources: [

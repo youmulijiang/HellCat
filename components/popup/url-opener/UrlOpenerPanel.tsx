@@ -14,13 +14,12 @@ export const UrlOpenerPanel: React.FC = () => {
     <div className="flex h-full min-h-0 flex-col">
       <Tabs
         defaultActiveKey="multi-open"
-        size="small"
         className="flex h-full min-h-0 flex-col [&_.ant-tabs-content]:h-full [&_.ant-tabs-content-holder]:flex-1 [&_.ant-tabs-content-holder]:min-h-0 [&_.ant-tabs-content-holder]:overflow-hidden [&_.ant-tabs-tabpane]:h-full"
         items={[
           {
             key: 'multi-open',
             label: (
-              <span className="flex items-center gap-1 text-xs">
+              <span className="flex items-center gap-1.5 text-sm">
                 <AppstoreOutlined /> 多开
               </span>
             ),
@@ -29,7 +28,7 @@ export const UrlOpenerPanel: React.FC = () => {
           {
             key: 'slideshow',
             label: (
-              <span className="flex items-center gap-1 text-xs">
+              <span className="flex items-center gap-1.5 text-sm">
                 <PlayCircleOutlined /> 幻灯片
               </span>
             ),
@@ -38,7 +37,7 @@ export const UrlOpenerPanel: React.FC = () => {
           {
             key: 'screenshot',
             label: (
-              <span className="flex items-center gap-1 text-xs">
+              <span className="flex items-center gap-1.5 text-sm">
                 <CameraOutlined /> 截图
               </span>
             ),

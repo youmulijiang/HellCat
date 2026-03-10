@@ -86,14 +86,14 @@ const App: React.FC = () => {
       theme={{
         algorithm: theme.defaultAlgorithm,
         token: {
-          fontSize: 12,
+          fontSize: 14,
           borderRadius: 4,
-          controlHeight: 28,
+          controlHeight: 32,
         },
         components: {
-          Button: { controlHeight: 24, paddingInlineSM: 8 },
-          Input: { controlHeight: 24 },
-          Select: { controlHeight: 24 },
+          Button: { controlHeight: 30, paddingInlineSM: 10 },
+          Input: { controlHeight: 30 },
+          Select: { controlHeight: 30 },
           Tabs: { horizontalMargin: '0' },
         },
       }}

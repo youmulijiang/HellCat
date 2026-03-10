@@ -17,13 +17,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onChange,
 }) => {
   return (
-    <div className="border-t border-gray-200 bg-white px-2 py-1">
+    <div className="border-t border-gray-200 bg-white px-2.5 py-2">
       <Input.Search
-        size="small"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         allowClear
+        className="text-sm"
       />
     </div>
   );

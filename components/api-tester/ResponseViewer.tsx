@@ -56,7 +56,7 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-400 text-xs">
+      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
         <div className="flex flex-col items-center gap-2">
           <div className="animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full" />
           <span>Sending request...</span>
@@ -67,7 +67,7 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full text-red-500 text-xs p-4">
+      <div className="flex items-center justify-center h-full p-4 text-sm text-red-500">
         <div className="text-center">
           <div className="text-lg mb-2">✕</div>
           <div className="font-bold mb-1">Request Error</div>
@@ -80,7 +80,7 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
   if (!response) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Empty description={<span className="text-gray-400 text-xs">点击 Send 发送请求后查看响应</span>} />
+        <Empty description={<span className="text-gray-400 text-sm">点击 Send 发送请求后查看响应</span>} />
       </div>
     );
   }
@@ -93,15 +93,15 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
   const tabItems = [
     {
       key: 'body',
-      label: <span className="text-xs">Body</span>,
+      label: <span className="text-sm">Body</span>,
       children: (
         <div className="relative">
           <Button
-            type="text" size="small" icon={<CopyOutlined />}
+            type="text" icon={<CopyOutlined />}
             onClick={handleCopy}
             className="absolute right-0 top-0 z-10 text-gray-400 hover:text-blue-500"
           />
-          <pre className="text-xs font-mono whitespace-pre-wrap break-all p-2 m-0 max-h-[calc(100vh-220px)] overflow-auto bg-gray-50 rounded">
+          <pre className="m-0 max-h-[calc(100vh-220px)] overflow-auto rounded bg-gray-50 p-3 text-sm font-mono leading-6 whitespace-pre-wrap break-all">
             {formattedBody.isJson ? formattedBody.formatted : response.body}
           </pre>
         </div>
@@ -109,11 +109,11 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
     },
     {
       key: 'headers',
-      label: <span className="text-xs">Headers ({response.headers.length})</span>,
+      label: <span className="text-sm">Headers ({response.headers.length})</span>,
       children: (
-        <div className="text-xs space-y-0.5 p-2">
+        <div className="space-y-1 p-3 text-sm leading-6">
           {response.headers.map((h, i) => (
-            <div key={i} className="flex gap-2 py-0.5 border-b border-gray-100">
+            <div key={i} className="flex gap-2 border-b border-gray-100 py-1">
               <span className="font-bold text-blue-600 shrink-0">{h.name}:</span>
               <span className="text-gray-600 break-all">{h.value}</span>
             </div>
@@ -126,17 +126,17 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
   return (
     <div className="flex flex-col h-full">
       {/* 状态栏 */}
-      <div className="flex items-center gap-3 px-3 py-1.5 border-b border-gray-200 bg-gray-50 shrink-0">
-        <Tag color={getStatusColor(response.status)} className="text-xs m-0 font-mono">
+      <div className="flex items-center gap-3 border-b border-gray-200 bg-gray-50 px-3 py-2 shrink-0">
+        <Tag color={getStatusColor(response.status)} className="m-0 text-sm font-mono">
           {response.status} {response.statusText}
         </Tag>
-        <span className="text-[10px] text-gray-400">Time: <span className="text-gray-600 font-mono">{response.duration}ms</span></span>
-        <span className="text-[10px] text-gray-400">Size: <span className="text-gray-600 font-mono">{formatSize(response.size)}</span></span>
+        <span className="text-xs text-gray-400">Time: <span className="font-mono text-gray-600">{response.duration}ms</span></span>
+        <span className="text-xs text-gray-400">Size: <span className="font-mono text-gray-600">{formatSize(response.size)}</span></span>
       </div>
 
       {/* 标签页 */}
       <div className="flex-1 min-h-0 overflow-auto">
-        <Tabs size="small" activeKey={activeTab} onChange={setActiveTab} items={tabItems} className="px-2" />
+        <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} className="px-2" />
       </div>
     </div>
   );

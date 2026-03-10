@@ -139,7 +139,7 @@ export const SlideshowTab: React.FC = () => {
       <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
         <div className="flex items-center gap-2">
           <ClockCircleOutlined className="text-gray-400" />
-          <span className="text-xs font-medium text-gray-700">每页停留</span>
+          <span className="text-sm font-medium text-gray-700">每页停留</span>
         </div>
         <div className="mt-2 flex items-center gap-2">
           <InputNumber
@@ -147,11 +147,10 @@ export const SlideshowTab: React.FC = () => {
             max={300}
             value={duration}
             onChange={(value) => setDuration(value ?? 10)}
-            size="small"
-            className="w-24"
+            className="w-28"
             disabled={state.running || state.paused}
           />
-          <span className="text-xs text-gray-400">秒 / 页</span>
+          <span className="text-sm text-gray-400">秒 / 页</span>
           {hasSession && <Tag color={statusColor}>{statusText}</Tag>}
         </div>
       </div>
@@ -161,7 +160,7 @@ export const SlideshowTab: React.FC = () => {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={'每行一个URL，例如:\nexample.com\nhttps://google.com'}
-          className="!h-full !resize-none rounded-lg text-xs font-mono"
+          className="!h-full !resize-none rounded-lg text-sm font-mono leading-6"
           spellCheck={false}
           disabled={state.running || state.paused}
         />
@@ -169,8 +168,8 @@ export const SlideshowTab: React.FC = () => {
 
       <div className="rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-700">播放队列</span>
-          <span className="text-[10px] text-gray-400">{displayUrls.length} 个 URL</span>
+          <span className="text-sm font-medium text-gray-700">播放队列</span>
+          <span className="text-xs text-gray-400">{displayUrls.length} 个 URL</span>
         </div>
 
         <div className="max-h-32 overflow-y-auto pr-1">
@@ -191,13 +190,13 @@ export const SlideshowTab: React.FC = () => {
                     ref={isCurrent ? activeItemRef : undefined}
                     className={`rounded-md border px-2 py-2 transition-colors ${itemClassName}`}
                   >
-                    <div className="flex items-center gap-2 text-[11px] font-medium">
-                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/80 px-1 text-[10px]">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/80 px-1 text-xs">
                         {index + 1}
                       </span>
                       <span className="truncate">{url}</span>
                       {isCurrent && (
-                        <span className="ml-auto shrink-0 rounded-full bg-white/90 px-2 py-0.5 text-[10px]">
+                        <span className="ml-auto shrink-0 rounded-full bg-white/90 px-2 py-0.5 text-xs">
                           {state.paused ? '暂停中' : (state.completed ? '结束' : '当前')}
                         </span>
                       )}
@@ -207,7 +206,7 @@ export const SlideshowTab: React.FC = () => {
               })}
             </div>
           ) : (
-            <div className="rounded-md border border-dashed border-gray-200 px-3 py-4 text-center text-[11px] text-gray-400">
+            <div className="rounded-md border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-400">
               请输入 URL 列表后开始播放
             </div>
           )}
@@ -217,41 +216,39 @@ export const SlideshowTab: React.FC = () => {
       {hasSession && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-700">播放进度</span>
-            <span className="text-[10px] text-gray-400">
+            <span className="text-sm font-medium text-gray-700">播放进度</span>
+            <span className="text-xs text-gray-400">
               {Math.min(state.currentIndex + 1, state.total)} / {state.total}
             </span>
           </div>
           <Progress percent={percent} size="small" showInfo={false} />
-          <div className="truncate text-[10px] text-gray-500" title={state.currentUrl || displayUrls[state.currentIndex] || ''}>
+          <div className="truncate text-xs leading-5 text-gray-500" title={state.currentUrl || displayUrls[state.currentIndex] || ''}>
             当前: {state.currentUrl || displayUrls[state.currentIndex] || '-'}
           </div>
         </div>
       )}
 
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-gray-400">
+        <span className="text-xs text-gray-400">
           {hasSession ? `${state.total} 个URL` : `${lineCount} 个URL`}
         </span>
         <div className="flex items-center gap-2">
           {state.running || state.paused ? (
             <>
               <Button
-                size="small"
                 type={state.paused ? 'primary' : 'default'}
                 icon={state.paused ? <CaretRightOutlined /> : <PauseOutlined />}
                 onClick={handlePauseResume}
               >
                 {state.paused ? '继续' : '暂停'}
               </Button>
-              <Button size="small" danger icon={<StopOutlined />} onClick={handleStop}>
+              <Button danger icon={<StopOutlined />} onClick={handleStop}>
                 停止
               </Button>
             </>
           ) : (
             <Button
               type="primary"
-              size="small"
               icon={<CaretRightOutlined />}
               disabled={lineCount === 0}
               onClick={handleStart}

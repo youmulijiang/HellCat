@@ -116,7 +116,7 @@ export const WsFrameDetail: React.FC = () => {
       return (
         <textarea
           className="w-full h-full resize-none border-none outline-none p-3
-            text-xs font-mono leading-5 text-gray-700 bg-gray-50/50"
+            text-sm font-mono leading-6 text-gray-700 bg-gray-50/50"
           value={editedFrameData ?? frame.data}
           onChange={(e) => handleDataChange(e.target.value)}
           spellCheck={false}
@@ -124,7 +124,7 @@ export const WsFrameDetail: React.FC = () => {
       );
     }
     return (
-      <pre className="text-xs font-mono text-gray-700 whitespace-pre-wrap break-all p-3 m-0 overflow-y-auto h-full bg-gray-50/50">
+      <pre className="m-0 h-full overflow-y-auto bg-gray-50/50 p-3 text-sm font-mono leading-6 text-gray-700 whitespace-pre-wrap break-all">
         {content}
       </pre>
     );
@@ -145,7 +145,7 @@ export const WsFrameDetail: React.FC = () => {
       key: 'hex',
       label: 'Hex',
       children: (
-        <pre className="text-xs font-mono text-gray-700 whitespace-pre p-3 m-0 overflow-auto h-full bg-gray-50/50">
+        <pre className="m-0 h-full overflow-auto bg-gray-50/50 p-3 text-sm font-mono leading-6 text-gray-700 whitespace-pre">
           {hexView}
         </pre>
       ),
@@ -156,7 +156,7 @@ export const WsFrameDetail: React.FC = () => {
     <div className="flex flex-col h-full">
       {/* 帧信息头 */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50/50">
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2 text-sm">
           {isSent ? (
             <ArrowUpOutlined className="text-green-500" />
           ) : (
@@ -171,23 +171,21 @@ export const WsFrameDetail: React.FC = () => {
           <Tooltip title={isEditing ? '退出编辑' : '编辑数据'}>
             <Button
               type={isEditing ? 'primary' : 'text'}
-              size="small"
               icon={<EditOutlined />}
               onClick={handleToggleEdit}
             />
           </Tooltip>
           {hasEdited && (
             <Tooltip title="重置编辑">
-              <Button type="text" size="small" icon={<UndoOutlined />} onClick={handleReset} />
+              <Button type="text" icon={<UndoOutlined />} onClick={handleReset} />
             </Tooltip>
           )}
           <Tooltip title="复制数据">
-            <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopy} />
+            <Button type="text" icon={<CopyOutlined />} onClick={handleCopy} />
           </Tooltip>
           <Tooltip title="发送/重放">
             <Button
               type="primary"
-              size="small"
               icon={<SendOutlined />}
               onClick={handleSend}
               disabled={!connection}
@@ -201,7 +199,6 @@ export const WsFrameDetail: React.FC = () => {
       {/* 内容标签页 */}
       <div className="flex-1 overflow-hidden">
         <Tabs
-          size="small"
           items={tabItems}
           className="h-full [&_.ant-tabs-content]:h-[calc(100%-32px)] [&_.ant-tabs-tabpane]:h-full"
           tabBarStyle={{ margin: '0 12px', marginBottom: 0 }}

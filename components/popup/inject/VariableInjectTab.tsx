@@ -48,23 +48,21 @@ export const VariableInjectTab: React.FC<Props> = ({
   return (
     <div className="flex flex-col gap-2 h-full">
       {/* 添加新变量 */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <Input
-          size="small"
           placeholder="变量名"
           value={newKey}
           onChange={e => setNewKey(e.target.value)}
-          className="flex-1"
+          className="flex-1 text-sm"
         />
         <Input
-          size="small"
           placeholder="值"
           value={newValue}
           onChange={e => setNewValue(e.target.value)}
-          className="flex-1"
+          className="flex-1 text-sm"
         />
         <Tooltip title="添加变量">
-          <Button size="small" icon={<PlusOutlined />} onClick={handleAdd} />
+          <Button icon={<PlusOutlined />} onClick={handleAdd} />
         </Tooltip>
       </div>
 
@@ -76,25 +74,23 @@ export const VariableInjectTab: React.FC<Props> = ({
           {variables.map(v => (
             <div
               key={v.id}
-              className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded border border-gray-100 hover:border-blue-200 transition-colors"
+              className="flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-2 py-2 hover:border-blue-200 transition-colors"
             >
               <Input
-                size="small"
                 value={v.key}
                 onChange={e => onUpdate(v.id, { key: e.target.value })}
-                className="flex-1 font-mono text-xs"
-                prefix={<span className="text-gray-300 text-[10px]">{'{{'}</span>}
-                suffix={<span className="text-gray-300 text-[10px]">{'}}'}</span>}
+                className="flex-1 font-mono text-sm"
+                prefix={<span className="text-xs text-gray-300">{'{{'}</span>}
+                suffix={<span className="text-xs text-gray-300">{'}}'}</span>}
               />
-              <span className="text-gray-300 text-xs">=</span>
+              <span className="text-sm text-gray-300">=</span>
               <Input
-                size="small"
                 value={v.value}
                 onChange={e => onUpdate(v.id, { value: e.target.value })}
-                className="flex-1 text-xs"
+                className="flex-1 text-sm"
               />
               <Popconfirm title="确定删除？" onConfirm={() => onRemove(v.id)} okText="确定" cancelText="取消">
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                <Button type="text" danger icon={<DeleteOutlined />} />
               </Popconfirm>
             </div>
           ))}
@@ -105,7 +101,6 @@ export const VariableInjectTab: React.FC<Props> = ({
       <Tooltip title="将页面表单中的 {{变量名}} 替换为对应的值">
         <Button
           type="primary"
-          size="small"
           icon={<ThunderboltOutlined />}
           onClick={handleFill}
           block
@@ -115,8 +110,8 @@ export const VariableInjectTab: React.FC<Props> = ({
       </Tooltip>
 
       {/* 说明 */}
-      <div className="text-[10px] text-gray-400 leading-4 px-1">
-        <p>• 在表单中使用 <code className="bg-gray-100 px-1 rounded">{'{{变量名}}'}</code> 作为占位符</p>
+      <div className="px-1 text-xs leading-5 text-gray-400">
+        <p>• 在表单中使用 <code className="rounded bg-gray-100 px-1">{'{{变量名}}'}</code> 作为占位符</p>
         <p>• 点击"变量填充注入"后，页面表单中匹配的占位符将被替换为对应的值</p>
         <p>• 支持 input、textarea、contenteditable 元素</p>
       </div>
