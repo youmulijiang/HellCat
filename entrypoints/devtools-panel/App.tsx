@@ -70,7 +70,7 @@ const App: React.FC = () => {
         return <ApiTesterLayout />;
       case 'websocket':
         return <WebSocketLayout />;
-      case 'data-store':
+      case 'report-writer':
         return <ReportLayout />;
       default:
         return (

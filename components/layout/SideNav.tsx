@@ -32,8 +32,8 @@ const NAV_MODULES: NavModule[] = [
   { key: 'data-generator', label: '数据生成', icon: <ExperimentOutlined /> },
   { key: 'diff', label: 'Diff', icon: <DiffOutlined /> },
   { key: 'misc', label: '杂项工具', icon: <ToolOutlined /> },
-  { key: 'data-store', label: '报告编写', icon: <FileTextOutlined /> },
-  { key: 'settings', label: '设置', icon: <SettingOutlined /> },
+  { key: 'report-writer', label: '报告编写', icon: <FileTextOutlined /> },
+  // { key: 'settings', label: '设置', icon: <SettingOutlined /> },
 ];
 
 interface SideNavProps {
