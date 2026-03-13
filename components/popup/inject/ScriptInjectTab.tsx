@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Button, Switch, Tooltip, Empty, Popconfirm, message } from 'antd';
+import { Button, Switch, Tooltip, Empty, Popconfirm, Dropdown, message } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   PlayCircleOutlined,
   ThunderboltOutlined,
+  AppstoreAddOutlined,
 } from '@ant-design/icons';
 import type { InjectScript } from '@/types/inject';
 import { ScriptEditModal } from './ScriptEditModal';
+import { PRESET_SCRIPTS } from './presetScripts';
 
 interface Props {
   scripts: InjectScript[];
@@ -32,6 +35,33 @@ export const ScriptInjectTab: React.FC<Props> = ({
     setEditingScript(null);
     setModalOpen(true);
   };
+
+  /** 导入预设脚本 */
+  const handleImportPreset = async (key: string) => {
+    const preset = PRESET_SCRIPTS.find(p => p.key === key);
+    if (!preset) return;
+    // 检查是否已存在同名脚本
+    if (scripts.some(s => s.name === preset.label)) {
+      message.warning(`脚本「${preset.label}」已存在`);
+      return;
+    }
+    try {
+      await onAdd(preset.label, preset.code);
+      message.success(`已添加预设脚本: ${preset.label}`);
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '添加预设失败');
+    }
+  };
+
+  const presetMenuItems: MenuProps['items'] = PRESET_SCRIPTS.map(p => ({
+    key: p.key,
+    label: (
+      <div className="flex flex-col py-0.5">
+        <span className="text-xs font-medium">{p.label}</span>
+        <span className="text-[10px] text-gray-400 leading-tight">{p.description}</span>
+      </div>
+    ),
+  }));
 
   const handleEdit = (script: InjectScript) => {
     setEditingScript(script);
@@ -102,6 +132,15 @@ export const ScriptInjectTab: React.FC<Props> = ({
               注入
             </Button>
           </Tooltip>
+          <Dropdown
+            menu={{ items: presetMenuItems, onClick: ({ key }) => void handleImportPreset(key) }}
+            placement="bottomRight"
+            trigger={['click']}
+          >
+            <Tooltip title="预设脚本">
+              <Button size="small" icon={<AppstoreAddOutlined />} />
+            </Tooltip>
+          </Dropdown>
           <Tooltip title="添加脚本">
             <Button size="small" icon={<PlusOutlined />} onClick={handleAdd} />
           </Tooltip>
