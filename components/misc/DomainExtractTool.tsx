@@ -16,6 +16,10 @@ export const DomainExtractTool: React.FC = () => {
   const [output, setOutput] = useState('');
 
   const handleExtract = useCallback(() => {
+    if (!input.trim()) {
+      message.warning('请先输入需要提取域名的文本');
+      return;
+    }
     // 匹配域名：支持子域名、顶级域名
     const domainRegex = /(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}/g;
     const matches = input.match(domainRegex) || [];
@@ -45,6 +49,9 @@ export const DomainExtractTool: React.FC = () => {
       results.sort((a, b) => a.localeCompare(b));
     }
 
+    if (results.length === 0) {
+      message.warning('未提取到任何域名，请检查输入文本');
+    }
     setOutput(results.join('\n'));
   }, [input, deduplicate, sortOutput, includeSubdomain]);
 

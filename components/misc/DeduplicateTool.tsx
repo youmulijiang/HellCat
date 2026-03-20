@@ -16,6 +16,10 @@ export const DeduplicateTool: React.FC = () => {
   const [output, setOutput] = useState('');
 
   const handleProcess = useCallback(() => {
+    if (!input.trim()) {
+      message.warning('请先输入需要去重的数据');
+      return;
+    }
     let lines = input.split('\n');
     if (ignoreEmpty) {
       lines = lines.filter((l) => l.trim() !== '');
@@ -30,6 +34,9 @@ export const DeduplicateTool: React.FC = () => {
       }
     }
     if (sortOutput) result.sort((a, b) => a.localeCompare(b));
+    if (result.length === 0) {
+      message.warning('去重后没有有效数据');
+    }
     setOutput(result.join('\n'));
   }, [input, ignoreCase, ignoreEmpty, sortOutput]);
 

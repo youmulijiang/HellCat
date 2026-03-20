@@ -36,6 +36,10 @@ export const RegexExtractTool: React.FC = () => {
   }, []);
 
   const handleExtract = useCallback(() => {
+    if (!input.trim()) {
+      message.warning('请先输入需要提取的文本');
+      return;
+    }
     if (!pattern.trim()) {
       setError('请输入正则表达式');
       return;
@@ -46,6 +50,9 @@ export const RegexExtractTool: React.FC = () => {
       let results = [...matches];
       if (deduplicate) {
         results = [...new Set(results)];
+      }
+      if (results.length === 0) {
+        message.warning('未匹配到任何结果，请检查输入文本或正则表达式');
       }
       setOutput(results.join('\n'));
       setError('');

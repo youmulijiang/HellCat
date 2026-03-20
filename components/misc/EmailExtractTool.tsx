@@ -16,6 +16,10 @@ export const EmailExtractTool: React.FC = () => {
   const [output, setOutput] = useState('');
 
   const handleExtract = useCallback(() => {
+    if (!input.trim()) {
+      message.warning('请先输入需要提取邮箱的文本');
+      return;
+    }
     const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,63}/g;
     const matches = input.match(emailRegex) || [];
 
@@ -28,6 +32,9 @@ export const EmailExtractTool: React.FC = () => {
       results.sort((a, b) => a.localeCompare(b));
     }
 
+    if (results.length === 0) {
+      message.warning('未提取到任何邮箱地址，请检查输入文本');
+    }
     setOutput(results.join('\n'));
   }, [input, deduplicate, sortOutput, lowerCase]);
 
