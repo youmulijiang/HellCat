@@ -38,6 +38,12 @@ interface PacketStoreState {
   editedRequestRaw: string | null;
   /** 编辑中的响应原始文本（null 表示未编辑） */
   editedResponseRaw: string | null;
+  /** 请求编辑历史（状态机）：past + present + future */
+  requestEditHistory: string[];
+  /** 当前历史指针位置 */
+  requestEditIndex: number;
+  /** Request/Response 布局方向：false=垂直（左右），true=水平（上下） */
+  requestSplitView: boolean;
 }
 
 interface PacketStoreActions {
@@ -85,6 +91,14 @@ interface PacketStoreActions {
   applyEditedRequest: () => void;
   /** 将编辑后的响应原始文本解析并应用到选中数据包 */
   applyEditedResponse: () => void;
+  /** 将当前编辑内容记录到历史（供编辑回调调用） */
+  pushRequestEditSnapshot: (content: string) => void;
+  /** 撤销请求编辑 */
+  undoRequestEdit: () => void;
+  /** 重做请求编辑 */
+  redoRequestEdit: () => void;
+  /** 切换 Request/Response 布局方向 */
+  toggleRequestSplitView: () => void;
 }
 
 export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set, get) => ({
@@ -102,6 +116,9 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
   isIntercepting: false,
   editedRequestRaw: null,
   editedResponseRaw: null,
+  requestEditHistory: [],
+  requestEditIndex: -1,
+  requestSplitView: false,
 
   addPacket: (packet) =>
     set((state) => ({ packets: [...state.packets, packet] })),
@@ -116,7 +133,7 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
     set({ packets: [], selectedPacketId: null }),
 
   selectPacket: (id) =>
-    set({ selectedPacketId: id, editedRequestRaw: null, editedResponseRaw: null }),
+    set({ selectedPacketId: id, editedRequestRaw: null, editedResponseRaw: null, requestEditHistory: [], requestEditIndex: -1 }),
 
   toggleStarPacket: (id) =>
     set((state) => ({
@@ -175,8 +192,9 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
     return get().packets.filter((p) => p.status === 'intercepted');
   },
 
-  setEditedRequestRaw: (raw) =>
-    set({ editedRequestRaw: raw }),
+  setEditedRequestRaw: (raw) => {
+    set({ editedRequestRaw: raw });
+  },
 
   setEditedResponseRaw: (raw) =>
     set({ editedResponseRaw: raw }),
@@ -192,6 +210,36 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
       ),
     });
   },
+
+  pushRequestEditSnapshot: (content) => {
+    const { requestEditHistory, requestEditIndex } = get();
+    // 丢弃当前指针之后的 future 快照
+    const trimmed = requestEditHistory.slice(0, requestEditIndex + 1);
+    const next = [...trimmed, content];
+    // 最多保留 10 步历史
+    const MAX_HISTORY = 10;
+    if (next.length > MAX_HISTORY) {
+      next.splice(0, next.length - MAX_HISTORY);
+    }
+    set({ requestEditHistory: next, requestEditIndex: next.length - 1 });
+  },
+
+  undoRequestEdit: () => {
+    const { requestEditHistory, requestEditIndex } = get();
+    if (requestEditIndex <= 0) return;
+    const newIndex = requestEditIndex - 1;
+    set({ editedRequestRaw: requestEditHistory[newIndex], requestEditIndex: newIndex });
+  },
+
+  redoRequestEdit: () => {
+    const { requestEditHistory, requestEditIndex } = get();
+    if (requestEditIndex >= requestEditHistory.length - 1) return;
+    const newIndex = requestEditIndex + 1;
+    set({ editedRequestRaw: requestEditHistory[newIndex], requestEditIndex: newIndex });
+  },
+
+  toggleRequestSplitView: () =>
+    set((state) => ({ requestSplitView: !state.requestSplitView })),
 
   applyEditedResponse: () => {
     const { editedResponseRaw, selectedPacketId, packets } = get();
@@ -210,7 +258,7 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
  * 解析原始请求文本为 RequestData
  * 格式: METHOD PATH HTTP/x.x\nHeader: Value\n...\n\nbody
  */
-function parseRawRequest(raw: string): RequestData | null {
+export function parseRawRequest(raw: string): RequestData | null {
   try {
     const [headerSection, ...bodyParts] = raw.split('\n\n');
     const body = bodyParts.join('\n\n');

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { nanoid } from 'nanoid';
-import { usePacketStore } from '@/stores/usePacketStore';
+import { usePacketStore, parseRawRequest } from '@/stores/usePacketStore';
 import type { CapturedPacket, HttpMethod, HttpHeader } from '@/types/packet';
 import type {
   BackgroundToDevToolsMessage,
@@ -288,16 +288,27 @@ export function useNetworkCapture() {
     updatePacketStatus(packetId, 'dropped');
   }, [updatePacketStatus]);
 
-  /** 重放/发送请求（使用编辑后的内容） */
+  /** 重放/发送请求（使用编辑后的内容，或直接从粘贴的原始文本解析） */
   const sendRequest = useCallback(() => {
     const store = usePacketStore.getState();
     const packet = store.getSelectedPacket();
-    if (!packet || !portRef.current) return;
+    if (!portRef.current) return;
 
-    // 先应用编辑内容到 packet
-    store.applyEditedRequest();
-    const updatedPacket = usePacketStore.getState().getSelectedPacket();
-    const req = updatedPacket?.request ?? packet.request;
+    let req: CapturedPacket['request'];
+
+    if (packet) {
+      // 有选中包：先应用编辑内容再发送
+      store.applyEditedRequest();
+      const updatedPacket = usePacketStore.getState().getSelectedPacket();
+      req = updatedPacket?.request ?? packet.request;
+    } else if (store.editedRequestRaw) {
+      // 无选中包但有粘贴/编辑的原始请求文本：直接解析
+      const parsed = parseRawRequest(store.editedRequestRaw);
+      if (!parsed) return;
+      req = parsed;
+    } else {
+      return;
+    }
 
     // 创建一个新数据包用于接收重放结果
     const newId = nanoid();

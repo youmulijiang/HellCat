@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import { usePacketStore } from '@/stores/usePacketStore';
 import { PanelHeader } from '../shared/PanelHeader';
 import { ContentTabs } from '../shared/ContentTabs';
@@ -26,9 +26,15 @@ export const RequestPanel: React.FC<RequestPanelProps> = ({ onSend }) => {
     getSelectedPacket,
     editedRequestRaw,
     setEditedRequestRaw,
+    pushRequestEditSnapshot,
   } = usePacketStore();
 
   const selectedPacket = getSelectedPacket();
+
+  // 防抖计时器，用于合并连续编辑为一次快照
+  const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 是否已记录初始快照
+  const hasInitialSnapshotRef = useRef(false);
 
   /** 根据视图标签获取展示内容 */
   const getContent = (): string => {
@@ -49,15 +55,27 @@ export const RequestPanel: React.FC<RequestPanelProps> = ({ onSend }) => {
   // 显示内容：优先使用编辑态文本，否则使用格式化后的原始内容
   const displayContent = editedRequestRaw ?? getContent();
 
-  /** 编辑回调：首次编辑时初始化编辑态 */
-  const handleChange = (value: string) => {
+  /** 编辑回调：带防抖快照的编辑 */
+  const handleChange = useCallback((value: string) => {
+    // 首次编辑时，记录编辑前的初始快照
+    if (!hasInitialSnapshotRef.current) {
+      const current = usePacketStore.getState().editedRequestRaw ?? getContent();
+      pushRequestEditSnapshot(current);
+      hasInitialSnapshotRef.current = true;
+    }
+
     setEditedRequestRaw(value);
-  };
+
+    // 防抖 500ms：用户停止输入后记录一次快照
+    if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
+    snapshotTimerRef.current = setTimeout(() => {
+      pushRequestEditSnapshot(value);
+    }, 500);
+  }, [setEditedRequestRaw, pushRequestEditSnapshot]);
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <PanelHeader title="REQUEST" />
-      <RequestToolbar onSend={onSend} />
+      <PanelHeader title="REQUEST" actions={<RequestToolbar onSend={onSend} />} />
       <ContentTabs
         tabs={REQUEST_TABS}
         activeTab={requestViewTab}

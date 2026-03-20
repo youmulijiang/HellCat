@@ -1,8 +1,6 @@
-import React from 'react';
-import { Button, Checkbox, Divider, Space, Tooltip } from 'antd';
+import React, { useCallback } from 'react';
+import { Button, Checkbox, Space, Tooltip, message } from 'antd';
 import {
-  PlusOutlined,
-  MinusOutlined,
   UndoOutlined,
   RedoOutlined,
   CopyOutlined,
@@ -16,62 +14,96 @@ interface RequestToolbarProps {
 }
 
 /**
- * 请求面板工具栏
- * 包含编辑操作、HTTPS 切换、Send 按钮等
+ * 请求面板工具栏（内联在 PanelHeader actions 插槽中）
+ * 包含 HTTPS 切换、Undo/Redo、Copy、Split View、Send
  */
 export const RequestToolbar: React.FC<RequestToolbarProps> = ({ onSend }) => {
-  const { useHttps, toggleHttps, getSelectedPacket } = usePacketStore();
+  const {
+    useHttps,
+    toggleHttps,
+    getSelectedPacket,
+    editedRequestRaw,
+    requestEditHistory,
+    requestEditIndex,
+    requestSplitView,
+    undoRequestEdit,
+    redoRequestEdit,
+    toggleRequestSplitView,
+  } = usePacketStore();
+
   const selectedPacket = getSelectedPacket();
+  const canSend = !!selectedPacket || !!editedRequestRaw;
+  const canUndo = requestEditIndex > 0;
+  const canRedo = requestEditIndex < requestEditHistory.length - 1;
 
-  const editActions = [
-    { icon: <PlusOutlined />, title: 'Add parameter' },
-    { icon: <MinusOutlined />, title: 'Remove parameter' },
-    { icon: <UndoOutlined />, title: 'Undo' },
-    { icon: <RedoOutlined />, title: 'Redo' },
-  ];
-
-  const viewActions = [
-    { icon: <CopyOutlined />, title: 'Copy to clipboard' },
-    { icon: <SplitCellsOutlined />, title: 'Toggle split view' },
-  ];
+  /** 复制当前请求内容到剪贴板 */
+  const handleCopy = useCallback(async () => {
+    const content = editedRequestRaw ?? '';
+    if (!content) {
+      message.warning('没有可复制的内容');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(content);
+      message.success('已复制到剪贴板');
+    } catch {
+      message.error('复制失败');
+    }
+  }, [editedRequestRaw]);
 
   return (
-    <div className="flex items-center px-2 py-1 border-b border-gray-200 bg-[#fafafa]">
-      <Space size={0}>
-        {editActions.map(({ icon, title }) => (
-          <Tooltip key={title} title={title} mouseEnterDelay={0.5}>
-            <Button type="text" size="small" icon={icon} />
-          </Tooltip>
-        ))}
-      </Space>
-
-      <Divider type="vertical" />
-
-      <Checkbox checked={useHttps} onChange={toggleHttps}>
+    <Space size={2} className="flex items-center">
+      <Checkbox checked={useHttps} onChange={toggleHttps} className="mr-1">
         <span style={{ fontSize: 12 }}>HTTPS</span>
       </Checkbox>
 
-      <Divider type="vertical" />
+      <Tooltip title="Undo" mouseEnterDelay={0.5}>
+        <Button
+          type="text"
+          size="small"
+          icon={<UndoOutlined />}
+          disabled={!canUndo}
+          onClick={undoRequestEdit}
+        />
+      </Tooltip>
+      <Tooltip title="Redo" mouseEnterDelay={0.5}>
+        <Button
+          type="text"
+          size="small"
+          icon={<RedoOutlined />}
+          disabled={!canRedo}
+          onClick={redoRequestEdit}
+        />
+      </Tooltip>
 
-      <Space size={0}>
-        {viewActions.map(({ icon, title }) => (
-          <Tooltip key={title} title={title} mouseEnterDelay={0.5}>
-            <Button type="text" size="small" icon={icon} />
-          </Tooltip>
-        ))}
-      </Space>
+      <Tooltip title="Copy to clipboard" mouseEnterDelay={0.5}>
+        <Button
+          type="text"
+          size="small"
+          icon={<CopyOutlined />}
+          onClick={handleCopy}
+        />
+      </Tooltip>
+      <Tooltip title="Toggle split view" mouseEnterDelay={0.5}>
+        <Button
+          type="text"
+          size="small"
+          icon={<SplitCellsOutlined />}
+          onClick={toggleRequestSplitView}
+          style={requestSplitView ? { color: '#1677ff' } : undefined}
+        />
+      </Tooltip>
 
       <Button
         type="primary"
         size="small"
         icon={<SendOutlined />}
-        className="ml-auto"
-        disabled={!selectedPacket}
+        disabled={!canSend}
         onClick={onSend}
       >
         Send
       </Button>
-    </div>
+    </Space>
   );
 };
 
