@@ -143,27 +143,29 @@ export const VueCrackPanel: React.FC = () => {
           dataSource={fullUrls}
           className="flex-1 min-h-0 overflow-y-auto border border-gray-200 rounded"
           renderItem={(item) => (
-            <List.Item className="!py-1 !px-2 group" style={{ padding: '4px 8px' }}>
-              <div className="flex items-center w-full gap-1 min-w-0">
-                <Text className="text-[10px] truncate flex-1 font-mono" title={item.url}>
-                  {item.path}
+            <List.Item className="py-1.5! px-2! group hover:bg-gray-50" style={{ padding: '6px 8px' }}>
+              <div className="flex items-center w-full gap-2 min-w-0">
+                <Text className="text-[11px] truncate flex-1 font-mono" title={item.url}>
+                  {item.url}
                 </Text>
-                <Tooltip title="复制URL">
-                  <Button
-                    type="text" size="small"
-                    icon={<CopyOutlined className="text-[10px]" />}
-                    className="opacity-0 group-hover:opacity-100 !w-5 !h-5 !min-w-0"
-                    onClick={() => copySingle(item.url)}
-                  />
-                </Tooltip>
-                <Tooltip title="打开">
-                  <Button
-                    type="text" size="small"
-                    icon={<LinkOutlined className="text-[10px]" />}
-                    className="opacity-0 group-hover:opacity-100 !w-5 !h-5 !min-w-0"
-                    onClick={() => openUrl(item.url)}
-                  />
-                </Tooltip>
+                <Space size={6} className="shrink-0">
+                  <Tooltip title="复制URL">
+                    <Button
+                      type="default" size="small"
+                      icon={<CopyOutlined />}
+                      className="opacity-0 group-hover:opacity-100 min-w-7! h-7!"
+                      onClick={() => copySingle(item.url)}
+                    />
+                  </Tooltip>
+                  <Tooltip title="打开网页">
+                    <Button
+                      type="primary" size="small"
+                      icon={<LinkOutlined />}
+                      className="opacity-0 group-hover:opacity-100 min-w-7! h-7!"
+                      onClick={() => openUrl(item.url)}
+                    />
+                  </Tooltip>
+                </Space>
               </div>
             </List.Item>
           )}
