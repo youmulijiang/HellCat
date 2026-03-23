@@ -5,6 +5,7 @@ import {
   CopyOutlined,
   ClearOutlined,
 } from '@ant-design/icons';
+import { browser } from 'wxt/browser';
 import {
   DORK_ENGINES,
   buildDorkQuery,
@@ -174,8 +175,25 @@ export const DorkPanel: React.FC = () => {
 
       {/* 底部预览 */}
       <div className="px-3 py-2 border-t border-gray-100 bg-gray-50/50">
-        <div className="text-[10px] text-gray-400 mb-0.5">生成的 Dork 语法：</div>
-        <div className="text-xs font-mono bg-white border border-gray-200 rounded px-2 py-1 min-h-[28px] break-all select-all text-gray-700">
+        <div className="flex items-center justify-between mb-0.5">
+          <span className="text-[10px] text-gray-400">生成的 Dork 语法：</span>
+          {query && (
+            <Button
+              type="link"
+              size="small"
+              icon={<SearchOutlined />}
+              onClick={handleSearch}
+              className="text-[10px] p-0 h-auto leading-none"
+            >
+              搜索
+            </Button>
+          )}
+        </div>
+        <div
+          className={`text-xs font-mono bg-white border border-gray-200 rounded px-2 py-1 min-h-[28px] break-all text-gray-700 ${query ? 'cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors select-all' : ''}`}
+          onClick={query ? handleSearch : undefined}
+          title={query ? '点击搜索' : undefined}
+        >
           {query || <span className="text-gray-300 italic">请填写上方字段</span>}
         </div>
       </div>

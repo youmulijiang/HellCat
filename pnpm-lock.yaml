@@ -50,6 +50,9 @@ importers:
       html2pdf.js:
         specifier: ^0.14.0
         version: 0.14.0
+      ipaddr.js:
+        specifier: ^2.3.0
+        version: 2.3.0
       jose:
         specifier: ^6.2.0
         version: 6.2.0
@@ -2117,6 +2120,10 @@ packages:
 
   iobuffer@5.4.0:
     resolution: {integrity: sha512-DRebOWuqDvxunfkNJAlc3IzWIPD5xVxwUNbHr7xKB8E6aLJxIPfNX3CoMJghcFjpv6RWQsrcJbghtEwSPoJqMA==}
+
+  ipaddr.js@2.3.0:
+    resolution: {integrity: sha512-Zv/pA+ciVFbCSBBjGfaKUya/CcGmUHzTydLMaTwrUUEM2DIEO3iZvueGxmacvmN50fGpGVKeTXpb2LcYQxeVdg==}
+    engines: {node: '>= 10'}
 
   is-absolute@0.1.7:
     resolution: {integrity: sha512-Xi9/ZSn4NFapG8RP98iNPMOeaV3mXPisxKxzKtHVqr3g56j/fBn+yZmnxSVAA8lmZbl2J9b/a4kJvfU3hqQYgA==}
@@ -5687,6 +5694,8 @@ snapshots:
   inline-style-parser@0.2.7: {}
 
   iobuffer@5.4.0: {}
+
+  ipaddr.js@2.3.0: {}
 
   is-absolute@0.1.7:
     dependencies:

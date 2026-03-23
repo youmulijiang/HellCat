@@ -29,6 +29,7 @@
     "eslint": "^10.0.3",
     "fuse.js": "^7.1.0",
     "html2pdf.js": "^0.14.0",
+    "ipaddr.js": "^2.3.0",
     "jose": "^6.2.0",
     "jsencrypt": "^3.5.4",
     "lucide-react": "^0.577.0",

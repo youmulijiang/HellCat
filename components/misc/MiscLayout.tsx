@@ -5,11 +5,13 @@ import {
   GlobalOutlined,
   MailOutlined,
   FileSearchOutlined,
+  ClusterOutlined,
 } from '@ant-design/icons';
 import { DeduplicateTool } from './DeduplicateTool';
 import { DomainExtractTool } from './DomainExtractTool';
 import { EmailExtractTool } from './EmailExtractTool';
 import { RegexExtractTool } from './RegexExtractTool';
+import { IpExtractTool } from './IpExtractTool';
 
 /** 杂项子功能定义 */
 interface MiscTool {
@@ -23,6 +25,7 @@ const MISC_TOOLS: MiscTool[] = [
   { key: 'domain', label: '域名提取', icon: <GlobalOutlined /> },
   { key: 'email', label: 'Email 提取', icon: <MailOutlined /> },
   { key: 'regex', label: '正则提取', icon: <FileSearchOutlined /> },
+  { key: 'ip', label: 'IP 提取', icon: <ClusterOutlined /> },
 ];
 
 /**
@@ -42,6 +45,8 @@ export const MiscLayout: React.FC = () => {
         return <EmailExtractTool />;
       case 'regex':
         return <RegexExtractTool />;
+      case 'ip':
+        return <IpExtractTool />;
       default:
         return null;
     }
