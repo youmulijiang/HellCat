@@ -27,14 +27,16 @@ export const ProxyPanel: React.FC = () => {
 
   const handleEditOk = async (data: {
     name: string; scheme: ProxyScheme; host: string; port: number;
-    username?: string; password?: string;
+    username?: string; password?: string; bypassList?: string[];
   }) => {
     if (editingProfile) {
-      await updateProfile(editingProfile.id, {
+      const update: Partial<ProxyProfile> = {
         name: data.name,
         server: { scheme: data.scheme, host: data.host, port: data.port,
           username: data.username, password: data.password },
-      });
+      };
+      if (data.bypassList) update.bypassList = data.bypassList;
+      await updateProfile(editingProfile.id, update);
     } else {
       await addProfile(data);
     }
@@ -159,6 +161,7 @@ export const ProxyPanel: React.FC = () => {
           port: editingProfile.server.port,
           username: editingProfile.server.username,
           password: editingProfile.server.password,
+          bypassList: editingProfile.bypassList,
         } : null}
         onOk={handleEditOk}
         onCancel={() => setEditModalOpen(false)}

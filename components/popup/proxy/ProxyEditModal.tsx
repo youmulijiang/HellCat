@@ -12,10 +12,11 @@ interface ProxyEditModalProps {
     port: number;
     username?: string;
     password?: string;
+    bypassList?: string[];
   } | null;
   onOk: (data: {
     name: string; scheme: ProxyScheme; host: string; port: number;
-    username?: string; password?: string;
+    username?: string; password?: string; bypassList?: string[];
   }) => void;
   onCancel: () => void;
 }
@@ -28,10 +29,13 @@ export const ProxyEditModal: React.FC<ProxyEditModalProps> = ({
   useEffect(() => {
     if (open) {
       if (editingProfile) {
-        form.setFieldsValue(editingProfile);
+        form.setFieldsValue({
+          ...editingProfile,
+          bypassText: editingProfile.bypassList?.join('\n') ?? '',
+        });
       } else {
         form.resetFields();
-        form.setFieldsValue({ scheme: 'http', port: 80 });
+        form.setFieldsValue({ scheme: 'http', port: 80, bypassText: '' });
       }
     }
   }, [open, editingProfile, form]);
@@ -48,7 +52,13 @@ export const ProxyEditModal: React.FC<ProxyEditModalProps> = ({
     <Modal
       title={editingProfile ? '编辑代理' : '添加代理'}
       open={open}
-      onOk={() => form.validateFields().then(onOk)}
+      onOk={() => form.validateFields().then(values => {
+        const { bypassText, ...rest } = values;
+        const bypassList = bypassText
+          ? bypassText.split('\n').map((s: string) => s.trim()).filter(Boolean)
+          : undefined;
+        onOk({ ...rest, bypassList });
+      })}
       onCancel={onCancel}
       width={360}
       destroyOnClose
@@ -86,6 +96,13 @@ export const ProxyEditModal: React.FC<ProxyEditModalProps> = ({
             <Input.Password placeholder="可选" />
           </Form.Item>
         </div>
+        <Form.Item name="bypassText" label="绕过列表（可选）">
+          <Input.TextArea
+            rows={4}
+            placeholder={"每行一条规则，支持通配符，例如：\nlocalhost\n127.0.0.1\n*.example.com\n10.*"}
+            className="text-xs"
+          />
+        </Form.Item>
       </Form>
     </Modal>
   );
