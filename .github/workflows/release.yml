@@ -1,5 +1,7 @@
-name: Build & Release WXT Extension (pnpm)
+name: Build & Release Hellcat Extension (pnpm)
 
+permissions:
+  contents: write
 # 推送 v 开头标签时自动触发（如 v1.0.0）
 on:
   push:
