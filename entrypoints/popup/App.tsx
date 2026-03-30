@@ -44,7 +44,7 @@ const LazyFallback = (
 const POPUP_TABS = [
   {
     key: 'home',
-    label: <span className="flex items-center gap-1"><HomeOutlined />首页</span>,
+    label: "首页",
     children: <Suspense fallback={LazyFallback}><HomePanel /></Suspense>,
   },
   {
