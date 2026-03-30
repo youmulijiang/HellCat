@@ -10,6 +10,16 @@ Hellcat 旨在帮助安全测试工程师、渗透测试人员和安全研究人
 它将常见测试动作整合进浏览器使用流程中，让你在**查看页面、分析请求、复现问题、整理结果**时更顺手。
 
 ## 截图
+![alt text](img/image-1.png)
+
+> 展示部分模块截图
+
+|DevTools 工作台|Popup 面板|
+|---|---|
+|![alt text](img/image-2.png)|![alt text](img/image-3.png)|
+|编码|数据生成|
+|![alt text](img/image-4.png)|![alt text](img/image-5.png)|
+
 
 
 ## 它解决什么问题
@@ -49,7 +59,7 @@ Hellcat 旨在帮助安全测试工程师、渗透测试人员和安全研究人
 - 渗透测试工程师
 - 安全研究人员
 - 红队 / 蓝队中的应用安全人员
-- 需要在浏览器环境中高频进行安全验证的人
+- 需要在浏览器环境中高频进行安全验证的工程师
 
 ## 典型使用方式
 
@@ -58,28 +68,6 @@ Hellcat 旨在帮助安全测试工程师、渗透测试人员和安全研究人
 3. 进行抓包、重放、接口测试、编码处理或漏洞扫描
 4. 通过 Popup 面板补充信息收集、Cookie、注入、Dork 等操作
 5. 将结果汇总到报告模块，完成记录与输出
-
-## 截图区
-
-> 下面区域已预留，你可以直接替换为产品截图。
-
-### 1. 总览
-
-![alt text](img/image-1.png)
-
-### 2. DevTools 工作台
-
-![Hellcat DevTools](./docs/screenshots/devtools-panel.png)
-
-### 3. Popup 面板
-
-![Hellcat Popup](./docs/screenshots/popup-panel.png)
-
-### 4. 漏洞扫描 / 报告示例
-
-![Hellcat Scan](./docs/screenshots/vulnerability-report.png)
-
-> 如果截图文件尚未准备好，可以先保留这些路径，后续补图即可。
 
 ## 快速开始
 
@@ -93,6 +81,8 @@ pnpm dev
 ```bash
 pnpm build
 ```
+在浏览器中加载 unpacked 扩展程序，即可使用。
+> 建议使用chrome浏览器加载插件，其他浏览器可能无法加载或存在兼容性问题。
 
 ## 声明
 
