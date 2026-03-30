@@ -1,0 +1,54 @@
+name: Build & Release WXT Extension (pnpm)
+
+# 推送 v 开头标签时自动触发（如 v1.0.0）
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 启用 pnpm 缓存
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.1 
+          cache: 'pnpm'
+
+      # 安装依赖
+      - name: Install dependencies
+        run: pnpm install
+
+      # 构建 Chrome
+      - name: Build Chrome
+        run: pnpm build
+
+      # 构建 Firefox
+      - name: Build Firefox
+        run: pnpm build:firefox
+
+      # 打包 Chrome ZIP
+      - name: Zip Chrome
+        run: pnpm zip
+
+      # 打包 Firefox ZIP
+      - name: Zip Firefox
+        run: pnpm zip:firefox
+
+      # 自动创建 Release 并上传 ZIP
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: .output/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

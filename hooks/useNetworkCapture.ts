@@ -9,7 +9,7 @@ import type {
 
 /**
  * HAR Entry 类型定义（简化版）
- * 对应 chrome.devtools.network.onRequestFinished 回调参数
+ * 对应 browser.devtools.network.onRequestFinished 回调参数
  */
 interface HarEntry {
   request: {
@@ -101,8 +101,8 @@ function safeParseUrl(url: string): URL | null {
 
 /**
  * 网络捕获 Hook
- * 使用 chrome.devtools.network.onRequestFinished 监听网络请求
- * 使用 chrome.runtime.connect 与 background 通信实现请求拦截
+ * 使用 browser.devtools.network.onRequestFinished 监听网络请求
+ * 使用 browser.runtime.connect 与 background 通信实现请求拦截
  * 将捕获的数据包转换并存入 Zustand store
  */
 export function useNetworkCapture() {
@@ -114,7 +114,7 @@ export function useNetworkCapture() {
     updatePacketStatus,
   } = usePacketStore();
   const isCapturingRef = useRef(isCapturing);
-  const portRef = useRef<chrome.runtime.Port | null>(null);
+  const portRef = useRef<browser.runtime.Port | null>(null);
 
   // 同步 ref 以避免闭包过期
   useEffect(() => {
@@ -158,9 +158,9 @@ export function useNetworkCapture() {
 
   // 建立与 background 的长连接
   useEffect(() => {
-    if (typeof chrome === 'undefined' || !chrome.runtime?.connect) return;
+    if (typeof chrome === 'undefined' || !browser.runtime?.connect) return;
 
-    const port = chrome.runtime.connect({ name: 'hellcat-devtools' });
+    const port = browser.runtime.connect({ name: 'hellcat-devtools' });
     portRef.current = port;
 
     port.onMessage.addListener((msg: BackgroundToDevToolsMessage) => {
@@ -230,7 +230,7 @@ export function useNetworkCapture() {
     const port = portRef.current;
     if (!port) return;
 
-    const tabId = chrome.devtools?.inspectedWindow?.tabId;
+    const tabId = browser.devtools?.inspectedWindow?.tabId;
     if (!tabId) return;
 
     if (isIntercepting) {

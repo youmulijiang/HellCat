@@ -8,7 +8,7 @@ import type {
 
 /**
  * WebSocket 监控 Hook
- * 通过 chrome.runtime.connect 与 background 通信，
+ * 通过 browser.runtime.connect 与 background 通信，
  * 接收 CDP Network 域的 WebSocket 事件并更新 store。
  *
  * 使用 useWsStore.getState() 访问 actions，避免因解构导致的不必要重渲染。
@@ -18,7 +18,7 @@ export function useWebSocket() {
   const isIntercepting = useWsStore((s) => s.isIntercepting);
   const clearAll = useWsStore((s) => s.clearAll);
 
-  const portRef = useRef<chrome.runtime.Port | null>(null);
+  const portRef = useRef<browser.runtime.Port | null>(null);
 
   /** 获取或创建 port（使用 getState 避免闭包过期） */
   const getPort = useCallback(() => {

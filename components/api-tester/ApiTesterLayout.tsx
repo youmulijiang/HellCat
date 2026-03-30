@@ -62,13 +62,13 @@ export const ApiTesterLayout: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
 
   // Background port
-  const portRef = useRef<chrome.runtime.Port | null>(null);
+  const portRef = useRef<browser.runtime.Port | null>(null);
   const pendingIdRef = useRef<string | null>(null);
 
   // 建立与 background 的长连接
   useEffect(() => {
-    if (typeof chrome === 'undefined' || !chrome.runtime?.connect) return;
-    const port = chrome.runtime.connect({ name: 'hellcat-devtools' });
+    if (typeof chrome === 'undefined' || !browser.runtime?.connect) return;
+    const port = browser.runtime.connect({ name: 'hellcat-devtools' });
     portRef.current = port;
 
     port.onMessage.addListener((msg: BackgroundToDevToolsMessage) => {
