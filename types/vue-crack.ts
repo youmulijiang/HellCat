@@ -10,6 +10,13 @@ export interface VueRouteInfo {
 }
 
 /** Vue Router 分析结果 */
+/** 页面链接分析结果 */
+export interface PageAnalysis {
+  detectedBasePath: string;
+  commonPrefixes: { prefix: string; count: number }[];
+}
+
+/** Vue Router 分析结果 */
 export interface VueRouterAnalysisResult {
   vueDetected: boolean;
   vueVersion: string | null;
@@ -18,6 +25,7 @@ export interface VueRouterAnalysisResult {
   allRoutes: VueRouteInfo[];
   routerBase: string;
   currentPath: string;
+  pageAnalysis?: PageAnalysis;
   error?: string;
 }
 

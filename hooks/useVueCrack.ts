@@ -69,9 +69,15 @@ export function useVueCrack() {
     }
   }, []);
 
-  /** 生成完整 URL 列表 */
+  /** 推断出的 base path（routerBase 优先，其次 pageAnalysis） */
+  const inferredBasePath =
+    state.analysis?.routerBase ||
+    state.analysis?.pageAnalysis?.detectedBasePath ||
+    '';
+
+  /** 生成完整 URL 列表，可传入自定义 basePath 覆盖推断值 */
   const buildFullUrls = useCallback(
-    async (): Promise<{ path: string; url: string }[]> => {
+    async (customBasePath?: string): Promise<{ path: string; url: string }[]> => {
       if (!state.analysis?.allRoutes?.length) return [];
 
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -89,7 +95,8 @@ export function useVueCrack() {
         baseUrl = domainBase;
       }
 
-      const routerBase = state.analysis.routerBase || '';
+      // 优先使用传入的自定义 basePath，否则用推断值
+      const basePath = customBasePath ?? inferredBasePath;
 
       return state.analysis.allRoutes.map((route) => {
         const cleanPath = route.path.startsWith('/') ? route.path.substring(1) : route.path;
@@ -99,7 +106,7 @@ export function useVueCrack() {
             ? `${baseUrl}${cleanPath}`
             : `${baseUrl}/${cleanPath}`;
         } else {
-          const prefix = routerBase ? `${domainBase}${routerBase}` : domainBase;
+          const prefix = basePath ? `${domainBase}${basePath}` : domainBase;
           url = `${prefix}/${cleanPath}`;
         }
         // 清理重复斜杠
@@ -107,7 +114,7 @@ export function useVueCrack() {
         return { path: route.path, url };
       });
     },
-    [state.analysis],
+    [state.analysis, inferredBasePath],
   );
 
   /** 复制所有路径 */
@@ -118,14 +125,15 @@ export function useVueCrack() {
   }, [state.analysis]);
 
   /** 复制所有 URL */
-  const copyAllUrls = useCallback(async () => {
-    const urls = await buildFullUrls();
+  const copyAllUrls = useCallback(async (customBasePath?: string) => {
+    const urls = await buildFullUrls(customBasePath);
     const text = urls.map((u) => u.url).join('\n');
     await navigator.clipboard.writeText(text);
   }, [buildFullUrls]);
 
   return {
     ...state,
+    inferredBasePath,
     detect,
     buildFullUrls,
     copyAllPaths,

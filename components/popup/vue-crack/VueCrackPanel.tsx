@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, List, Tag, message, Spin, Typography, Space, Tooltip, Empty } from 'antd';
+import { Button, List, Tag, message, Spin, Typography, Space, Tooltip, Empty, Input } from 'antd';
 import {
   SearchOutlined,
   CopyOutlined,
@@ -8,6 +8,7 @@ import {
   CloseCircleOutlined,
   ExclamationCircleOutlined,
   ReloadOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import { useVueCrack } from '@/hooks/useVueCrack';
 
@@ -22,21 +23,50 @@ export const VueCrackPanel: React.FC = () => {
     buildFullUrls,
     copyAllPaths,
     copyAllUrls,
+    inferredBasePath,
   } = useVueCrack();
 
   const [fullUrls, setFullUrls] = useState<{ path: string; url: string }[]>([]);
+  /** 用户自定义 basePath，undefined 表示使用推断值 */
+  const [customBasePath, setCustomBasePath] = useState<string | undefined>(undefined);
+  const [editingBasePath, setEditingBasePath] = useState(false);
+  const [basePathDraft, setBasePathDraft] = useState('');
+
+  /** 实际生效的 basePath */
+  const effectiveBasePath = customBasePath ?? inferredBasePath;
 
   /** 自动触发检测 */
   useEffect(() => {
     detect();
   }, [detect]);
 
-  /** 分析完成后构建 URL 列表 */
+  /** 分析完成后构建 URL 列表（basePath 变化时也重建） */
   useEffect(() => {
     if (analysis?.allRoutes?.length) {
-      buildFullUrls().then(setFullUrls);
+      buildFullUrls(customBasePath).then(setFullUrls);
     }
-  }, [analysis, buildFullUrls]);
+  }, [analysis, buildFullUrls, customBasePath]);
+
+  /** 当推断 basePath 变化时，同步到编辑草稿 */
+  useEffect(() => {
+    if (customBasePath === undefined) {
+      setBasePathDraft(inferredBasePath);
+    }
+  }, [inferredBasePath, customBasePath]);
+
+  /** 提交 basePath 编辑 */
+  const commitBasePath = () => {
+    const val = basePathDraft.trim();
+    setCustomBasePath(val || undefined);
+    setEditingBasePath(false);
+  };
+
+  /** 重置为推断值 */
+  const resetBasePath = () => {
+    setCustomBasePath(undefined);
+    setBasePathDraft(inferredBasePath);
+    setEditingBasePath(false);
+  };
 
   /** 复制单个 URL */
   const copySingle = async (url: string) => {
@@ -56,7 +86,7 @@ export const VueCrackPanel: React.FC = () => {
   };
 
   const handleCopyUrls = async () => {
-    await copyAllUrls();
+    await copyAllUrls(customBasePath);
     message.success('已复制所有URL');
   };
 
@@ -127,6 +157,50 @@ export const VueCrackPanel: React.FC = () => {
         <Tag color="purple" className="text-[10px] m-0">守卫已清除</Tag>
         <Button size="small" type="text" icon={<ReloadOutlined />} onClick={detect} className="ml-auto" />
       </div>
+
+      {/* Base Path 状态栏 */}
+      {analysis?.routerDetected && (
+        <div className="flex items-center gap-1.5 text-[11px] bg-gray-50 rounded px-2 py-1">
+          <Text type="secondary" className="text-[11px] shrink-0">Base Path:</Text>
+          {editingBasePath ? (
+            <>
+              <Input
+                size="small"
+                value={basePathDraft}
+                onChange={(e) => setBasePathDraft(e.target.value)}
+                onPressEnter={commitBasePath}
+                placeholder="例如 /admin"
+                className="flex-1 text-[11px] h-6!"
+                autoFocus
+              />
+              <Button size="small" type="primary" onClick={commitBasePath} className="h-6! text-[10px]">确定</Button>
+              <Button size="small" onClick={resetBasePath} className="h-6! text-[10px]">重置</Button>
+            </>
+          ) : (
+            <>
+              <Text
+                code
+                className="text-[11px] cursor-pointer"
+                onClick={() => { setBasePathDraft(effectiveBasePath); setEditingBasePath(true); }}
+              >
+                {effectiveBasePath || '(无)'}
+              </Text>
+              {customBasePath !== undefined && (
+                <Tag color="blue" className="text-[9px] m-0 leading-tight">自定义</Tag>
+              )}
+              {customBasePath === undefined && inferredBasePath && (
+                <Tag color="cyan" className="text-[9px] m-0 leading-tight">推断</Tag>
+              )}
+              <Tooltip title="编辑 Base Path">
+                <EditOutlined
+                  className="text-gray-400 hover:text-blue-500 cursor-pointer ml-auto"
+                  onClick={() => { setBasePathDraft(effectiveBasePath); setEditingBasePath(true); }}
+                />
+              </Tooltip>
+            </>
+          )}
+        </div>
+      )}
 
       {/* 操作按钮 */}
       {fullUrls.length > 0 && (

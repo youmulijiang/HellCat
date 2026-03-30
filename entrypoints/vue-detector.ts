@@ -202,12 +202,44 @@ export default defineUnlistedScript(() => {
     return list;
   }
 
+  // ======== 页面链接分析 ========
+
+  /** 分析页面中的 <a> 链接，推断公共 base path */
+  function analyzePageLinks(): { detectedBasePath: string; commonPrefixes: { prefix: string; count: number }[] } {
+    const result = { detectedBasePath: '', commonPrefixes: [] as { prefix: string; count: number }[] };
+    try {
+      const links = Array.from(document.querySelectorAll('a[href]'))
+        .map((a) => a.getAttribute('href'))
+        .filter((href): href is string =>
+          !!href && href.startsWith('/') && !href.startsWith('//') && !href.includes('.'),
+        );
+      if (links.length < 3) return result;
+
+      const firstSegments: Record<string, number> = {};
+      links.forEach((link) => {
+        const seg = link.split('/').filter(Boolean)[0];
+        if (seg) firstSegments[seg] = (firstSegments[seg] || 0) + 1;
+      });
+
+      const sorted = Object.entries(firstSegments)
+        .sort((a, b) => b[1] - a[1])
+        .map(([prefix, count]) => ({ prefix, count }));
+      result.commonPrefixes = sorted;
+
+      if (sorted.length > 0 && sorted[0].count / links.length > 0.6) {
+        result.detectedBasePath = '/' + sorted[0].prefix;
+      }
+    } catch {}
+    return result;
+  }
+
   // ======== 完整分析 ========
 
   function performFullAnalysis() {
     const result: any = {
       vueDetected: false, vueVersion: null, routerDetected: false,
       modifiedRoutes: [], allRoutes: [], routerBase: '', currentPath: window.location.pathname,
+      pageAnalysis: { detectedBasePath: '', commonPrefixes: [] },
     };
     try {
       const vueRoot = findVueRoot(document.body);
@@ -219,6 +251,7 @@ export default defineUnlistedScript(() => {
       result.routerDetected = true;
       result.vueVersion = getVueVersion(vueRoot);
       result.routerBase = extractRouterBase(router);
+      result.pageAnalysis = analyzePageLinks();
       result.modifiedRoutes = patchAllRouteAuth(router);
       patchRouterGuards(router);
       result.allRoutes = listAllRoutes(router).map((r) => ({
