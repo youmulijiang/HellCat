@@ -65,7 +65,7 @@ Hellcat 旨在帮助安全测试工程师、渗透测试人员和安全研究人
 
 ### 1. 总览
 
-![Hellcat Overview](./docs/screenshots/overview.png)
+![alt text](img/image-1.png)
 
 ### 2. DevTools 工作台
 
