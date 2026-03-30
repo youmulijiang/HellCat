@@ -1,5 +1,5 @@
 import React from 'react';
-import { GithubOutlined } from '@ant-design/icons';
+import { GithubOutlined, UserOutlined } from '@ant-design/icons';
 
 export const HomePanel: React.FC = () => {
   return (
@@ -27,7 +27,7 @@ export const HomePanel: React.FC = () => {
             className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700"
           >
             <GithubOutlined />
-            GitHub
+            柚木梨酱
           </a>
         </div>
       </div>
