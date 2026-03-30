@@ -22,6 +22,10 @@ export default defineConfig({
         matches: ['*://*/*'],
       },
     ],
+
+  },
+  zip:{
+    artifactTemplate: "hellcat-{{browser}}-extension.zip",
   },
   vite: () => ({
     plugins: [tailwindcss()],
