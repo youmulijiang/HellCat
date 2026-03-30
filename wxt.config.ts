@@ -26,6 +26,7 @@ export default defineConfig({
   },
   zip:{
     artifactTemplate: "hellcat-{{browser}}-extension.zip",
+    zipSources: false, // 只打包构建产物，不包含源代码
   },
   vite: () => ({
     plugins: [tailwindcss()],
