@@ -94,7 +94,7 @@ pnpm build
 本项目基于众多优秀的开源项目构建，在此向所有相关开发者与维护者致以诚挚的感谢：
 - [SnowEyes](https://github.com/SickleSec/SnowEyes):优秀的前端安全检测与信息收集思路，为本插件的核心检测能力提供了重要参考。
 - [AntiDebug_Breaker](https://github.com/0x727/AntiDebug_Breaker):反调试与前端防护绕过相关实现，为插件的安全测试辅助功能提供了技术借鉴。
-- [VueCrack](https://github.com/Ad1euDa1e/VueCrack):前端框架逆向与数据解密相关思路，丰富了插件针对现代前端应用的测试能力。
+- [VueCrack](https://github.com/Ad1euDa1e/VueCrack): vue框架路由提取插件,为本插件的vue路由提取功能提供了重要参考。
 - 项目所依赖的其他开源库：感谢每一个开源贡献者，让安全工具的开发更加便捷高效。
   
 正是这些高质量的开源成果，才使得本安全测试辅助插件得以顺利实现。
