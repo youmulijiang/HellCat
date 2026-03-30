@@ -1,6 +1,8 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { ConfigProvider, Spin, Tabs } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
+
+const TAB_STORAGE_KEY = 'popup_active_tab';
 
 /* ── 懒加载各面板（命名导出需要包装为 default） ── */
 const HomePanel = lazy(() =>
@@ -26,6 +28,9 @@ const InjectPanel = lazy(() =>
 );
 const ProxyPanel = lazy(() =>
   import('@/components/popup/proxy/ProxyPanel').then((m) => ({ default: m.ProxyPanel })),
+);
+const NotePanel = lazy(() =>
+  import('@/components/popup/note/NotePanel').then((m) => ({ default: m.NotePanel })),
 );
 
 /** 懒加载 fallback */
@@ -77,9 +82,31 @@ const POPUP_TABS = [
     label: 'URL多开',
     children: <Suspense fallback={LazyFallback}><UrlOpenerPanel /></Suspense>,
   },
+  {
+    key: 'note',
+    label: '笔记',
+    children: <Suspense fallback={LazyFallback}><NotePanel /></Suspense>,
+  },
 ];
 
+const VALID_TAB_KEYS = new Set(POPUP_TABS.map((t) => t.key));
+
 const App: React.FC = () => {
+  const [activeKey, setActiveKey] = useState('home');
+
+  // 初始化时从 localStorage 读取上次的选项卡
+  useEffect(() => {
+    const saved = localStorage.getItem(TAB_STORAGE_KEY);
+    if (saved && VALID_TAB_KEYS.has(saved)) {
+      setActiveKey(saved);
+    }
+  }, []);
+
+  const handleTabChange = (key: string) => {
+    setActiveKey(key);
+    localStorage.setItem(TAB_STORAGE_KEY, key);
+  };
+
   return (
     <ConfigProvider
       theme={{
@@ -98,7 +125,8 @@ const App: React.FC = () => {
     >
       <div className="flex h-full min-h-0 w-full flex-col">
         <Tabs
-          defaultActiveKey="home"
+          activeKey={activeKey}
+          onChange={handleTabChange}
           size="small"
           className="flex h-full min-h-0 flex-col px-2 [&_.ant-tabs-content]:h-full [&_.ant-tabs-content-holder]:min-h-0 [&_.ant-tabs-tabpane]:h-full"
           items={POPUP_TABS}
