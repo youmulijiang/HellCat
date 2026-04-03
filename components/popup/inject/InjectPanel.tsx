@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs } from 'antd';
 import {
   CodeOutlined,
@@ -72,10 +72,13 @@ export const InjectPanel: React.FC = () => {
     },
   ];
 
+  const [activeKey, setActiveKey] = useState(() => localStorage.getItem('popup_inject_subtab') || 'script');
+
   return (
     <div className="flex flex-col h-full py-1">
       <Tabs
-        defaultActiveKey="script"
+        activeKey={activeKey}
+        onChange={(k) => { setActiveKey(k); localStorage.setItem('popup_inject_subtab', k); }}
         size="small"
         items={items}
         tabBarStyle={{ marginBottom: 8 }}

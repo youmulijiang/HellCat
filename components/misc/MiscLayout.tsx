@@ -33,7 +33,8 @@ const MISC_TOOLS: MiscTool[] = [
  * 左侧功能选择栏 + 右侧工具区
  */
 export const MiscLayout: React.FC = () => {
-  const [activeTool, setActiveTool] = useState('deduplicate');
+  const [activeTool, setActiveTool] = useState(() => localStorage.getItem('popup_misc_subtab') || 'deduplicate');
+  const handleToolChange = (key: string) => { setActiveTool(key); localStorage.setItem('popup_misc_subtab', key); };
 
   const renderToolContent = () => {
     switch (activeTool) {
@@ -75,7 +76,7 @@ export const MiscLayout: React.FC = () => {
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800 border-r-2 border-r-transparent'
                     }
                   `}
-                  onClick={() => setActiveTool(tool.key)}
+                  onClick={() => handleToolChange(tool.key)}
                 >
                   <span style={{ fontSize: 13 }}>{tool.icon}</span>
                   <span className="truncate">{tool.label}</span>

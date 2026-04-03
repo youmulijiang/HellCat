@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs } from 'antd';
 import {
   AppstoreOutlined,
@@ -10,10 +10,13 @@ import { SlideshowTab } from './SlideshowTab';
 import { ScreenshotTab } from './ScreenshotTab';
 
 export const UrlOpenerPanel: React.FC = () => {
+  const [activeKey, setActiveKey] = useState(() => localStorage.getItem('popup_urlopener_subtab') || 'multi-open');
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <Tabs
-        defaultActiveKey="multi-open"
+        activeKey={activeKey}
+        onChange={(k) => { setActiveKey(k); localStorage.setItem('popup_urlopener_subtab', k); }}
         className="flex h-full min-h-0 flex-col [&_.ant-tabs-content]:h-full [&_.ant-tabs-content-holder]:flex-1 [&_.ant-tabs-content-holder]:min-h-0 [&_.ant-tabs-content-holder]:overflow-hidden [&_.ant-tabs-tabpane]:h-full"
         items={[
           {
