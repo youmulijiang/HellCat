@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Tag, Tooltip, Popconfirm, Radio, Space, Empty } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   PlusOutlined, DeleteOutlined, EditOutlined,
   GlobalOutlined, StopOutlined, UnorderedListOutlined,
@@ -10,6 +11,7 @@ import { BypassListModal } from './BypassListModal';
 import type { ProxyProfile, ProxyScheme } from '@/types/proxy';
 
 export const ProxyPanel: React.FC = () => {
+  const { t } = useTranslation();
   const {
     profiles, globalSettings,
     addProfile, updateProfile, removeProfile,
@@ -62,6 +64,14 @@ export const ProxyPanel: React.FC = () => {
     http: 'blue', https: 'green', socks4: 'orange', socks5: 'purple',
   };
 
+  const activeModeLabel = globalSettings.mode === 'direct'
+    ? t('popup.proxy.modeLabels.direct')
+    : globalSettings.mode === 'system'
+      ? t('popup.proxy.modeLabels.systemProxy')
+      : globalSettings.mode === 'fixed_servers'
+        ? t('popup.proxy.modeLabels.active')
+        : globalSettings.mode;
+
   return (
     <div className="flex flex-col gap-2 py-1 h-full">
       {/* 全局模式 */}
@@ -75,26 +85,24 @@ export const ProxyPanel: React.FC = () => {
           }}
         >
           <Radio.Button value="direct">
-            <StopOutlined className="mr-1" />直连
+            <StopOutlined className="mr-1" />{t('popup.proxy.modeLabels.direct')}
           </Radio.Button>
           <Radio.Button value="system">
-            <GlobalOutlined className="mr-1" />系统
+            <GlobalOutlined className="mr-1" />{t('popup.proxy.modeLabels.system')}
           </Radio.Button>
         </Radio.Group>
         <Button size="small" type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-          添加代理
+          {t('popup.proxy.addProfile')}
         </Button>
       </div>
 
       {/* 当前状态 */}
       <div className="px-1 text-[10px] text-gray-500 flex items-center gap-1">
-        当前模式：
+        {t('popup.proxy.currentMode')}
         <Tag color={globalSettings.mode === 'direct' ? 'default' :
           globalSettings.mode === 'fixed_servers' ? 'processing' : 'warning'}
           className="text-[10px]">
-          {globalSettings.mode === 'direct' ? '直连' :
-           globalSettings.mode === 'system' ? '系统代理' :
-           globalSettings.mode === 'fixed_servers' ? '代理中' : globalSettings.mode}
+          {activeModeLabel}
         </Tag>
         {globalSettings.mode === 'fixed_servers' && globalSettings.activeProfileId && (
           <span className="text-blue-500">
@@ -106,7 +114,7 @@ export const ProxyPanel: React.FC = () => {
       {/* 代理列表 */}
       <div className="flex-1 overflow-y-auto px-1 space-y-1">
         {profiles.length === 0 ? (
-          <Empty description="暂无代理配置" image={Empty.PRESENTED_IMAGE_SIMPLE}
+          <Empty description={t('popup.proxy.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE}
             className="mt-4" />
         ) : (
           profiles.map(p => (
@@ -128,21 +136,27 @@ export const ProxyPanel: React.FC = () => {
               <Space size={2}>
                 {isActive(p.id) ? (
                   <Button size="small" danger type="text" onClick={disconnect}>
-                    断开
+                    {t('common.actions.disconnect')}
                   </Button>
                 ) : (
                   <Button size="small" type="link" onClick={() => activateProfile(p.id)}>
-                    连接
+                    {t('common.actions.connect')}
                   </Button>
                 )}
-                <Tooltip title="绕过列表">
+                <Tooltip title={t('popup.proxy.tooltips.bypassList')}>
                   <Button size="small" type="text" icon={<UnorderedListOutlined />}
                     onClick={() => handleBypass(p)} />
                 </Tooltip>
                 <Button size="small" type="text" icon={<EditOutlined />}
                   onClick={() => handleEdit(p)} />
-                <Popconfirm title="确定删除？" onConfirm={() => removeProfile(p.id)}
-                  okButtonProps={{ size: 'small' }} cancelButtonProps={{ size: 'small' }}>
+                <Popconfirm
+                  title={t('popup.proxy.confirmDelete')}
+                  onConfirm={() => removeProfile(p.id)}
+                  okText={t('common.actions.confirm')}
+                  cancelText={t('common.actions.cancel')}
+                  okButtonProps={{ size: 'small' }}
+                  cancelButtonProps={{ size: 'small' }}
+                >
                   <Button size="small" type="text" danger icon={<DeleteOutlined />} />
                 </Popconfirm>
               </Space>

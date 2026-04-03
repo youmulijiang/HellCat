@@ -5,8 +5,9 @@ import {
   CopyOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { ScanResults } from '@/types/info-collect';
-import { createEmptyScanResults, SCAN_SECTION_LABELS } from '@/types/info-collect';
+import { createEmptyScanResults, SCAN_SECTION_KEYS } from '@/types/info-collect';
 
 /** 各分类颜色 */
 const SECTION_COLORS: Record<string, string> = {
@@ -25,6 +26,7 @@ const SECTION_COLORS: Record<string, string> = {
 };
 
 export const InfoCollectPanel: React.FC = () => {
+  const { t } = useTranslation();
   const [results, setResults] = useState<ScanResults>(createEmptyScanResults());
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -68,19 +70,19 @@ export const InfoCollectPanel: React.FC = () => {
     const values = results[key].map((item) => item.value).join('\n');
     if (!values) return;
     navigator.clipboard.writeText(values).then(() => {
-      message.success(`已复制 ${results[key].length} 条`);
+      message.success(t('popup.infoCollect.messages.copiedSection', { count: results[key].length }));
     });
   };
 
   /** 复制单个值 */
   const copyValue = (value: string) => {
     navigator.clipboard.writeText(value).then(() => {
-      message.success('已复制');
+      message.success(t('common.feedback.copySuccess'));
     });
   };
 
   /** 构建 Collapse items */
-  const collapseItems = (Object.keys(SCAN_SECTION_LABELS) as (keyof ScanResults)[])
+  const collapseItems = SCAN_SECTION_KEYS
     .filter((key) => {
       const items = results[key];
       if (!items.length) return false;
@@ -98,10 +100,10 @@ export const InfoCollectPanel: React.FC = () => {
         label: (
           <div className="flex items-center justify-between w-full pr-2">
             <span>
-              {SCAN_SECTION_LABELS[key]}
+              {t(`popup.infoCollect.sections.${key}`)}
               <Tag color={SECTION_COLORS[key]} className="ml-2">{items.length}</Tag>
             </span>
-            <Tooltip title="复制全部">
+            <Tooltip title={t('popup.infoCollect.tooltips.copyAll')}>
               <CopyOutlined
                 className="text-gray-400 hover:text-blue-500"
                 onClick={(e) => { e.stopPropagation(); copySection(key); }}
@@ -116,7 +118,7 @@ export const InfoCollectPanel: React.FC = () => {
                 key={idx}
                 className="flex items-center justify-between group px-1 py-0.5 hover:bg-gray-50 rounded text-xs"
               >
-                <Tooltip title={`来源: ${item.source}`} placement="topLeft">
+                <Tooltip title={t('popup.infoCollect.tooltips.source', { source: item.source })} placement="topLeft">
                   <span className="truncate flex-1 mr-2 cursor-default">{item.value}</span>
                 </Tooltip>
                 <CopyOutlined
@@ -137,7 +139,7 @@ export const InfoCollectPanel: React.FC = () => {
       <div className="flex items-center gap-2 px-1 py-1.5">
         <Input
           size="small"
-          placeholder="搜索..."
+          placeholder={t('popup.infoCollect.searchPlaceholder')}
           prefix={<SearchOutlined className="text-gray-400" />}
           value={searchKeyword}
           onChange={(e) => setSearchKeyword(e.target.value)}
@@ -145,18 +147,18 @@ export const InfoCollectPanel: React.FC = () => {
           className="flex-1"
         />
         <Button size="small" icon={<ReloadOutlined spin={loading} />} onClick={fetchResults}>
-          刷新
+          {t('common.actions.refresh')}
         </Button>
       </div>
       <div className="flex items-center gap-2 px-1 pb-1">
         <Progress percent={progress} size="small" className="flex-1 mb-0" />
-        <Tag>{totalCount} 条</Tag>
+        <Tag>{t('popup.infoCollect.countLabel', { count: totalCount })}</Tag>
       </div>
       <div className="flex-1 overflow-y-auto px-1">
         {collapseItems.length > 0 ? (
           <Collapse size="small" items={collapseItems} />
         ) : (
-          <Empty description="暂无数据" className="mt-8" />
+          <Empty description={t('popup.infoCollect.empty')} className="mt-8" />
         )}
       </div>
     </div>

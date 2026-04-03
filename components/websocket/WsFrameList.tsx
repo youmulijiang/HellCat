@@ -1,17 +1,19 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Button, Empty, Tag } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { ArrowUpOutlined, ArrowDownOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { useWsStore } from '@/stores/useWsStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
 /** 格式化时间戳为 HH:mm:ss.SSS */
-function formatTimestamp(ts: number): string {
-  const d = new Date(ts);
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  const ms = String(d.getMilliseconds()).padStart(3, '0');
-  return `${h}:${m}:${s}.${ms}`;
+function formatTimestamp(ts: number, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    fractionalSecondDigits: 3,
+    hour12: false,
+  }).format(new Date(ts));
 }
 
 /** 格式化字节长度 */
@@ -28,6 +30,7 @@ function previewData(data: string, maxLen = 120): string {
 }
 
 export const WsFrameList: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const selectedConnectionId = useWsStore((s) => s.selectedConnectionId);
   const selectedFrameId = useWsStore((s) => s.selectedFrameId);
   const selectFrame = useWsStore((s) => s.selectFrame);
@@ -62,7 +65,7 @@ export const WsFrameList: React.FC = () => {
   if (!selectedConnectionId) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 text-xs">
-        请选择一个连接
+        {t('devtools.websocket.frameList.selectConnection')}
       </div>
     );
   }
@@ -70,7 +73,7 @@ export const WsFrameList: React.FC = () => {
   if (filteredFrames.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Empty description="暂无帧数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Empty description={t('devtools.websocket.frameList.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
       </div>
     );
   }
@@ -81,7 +84,7 @@ export const WsFrameList: React.FC = () => {
       {isIntercepting && pausedFrames.length > 0 && (
         <div className="border-b-2 border-orange-300 bg-orange-50/60">
           <div className="flex items-center text-[10px] text-orange-600 font-medium px-3 py-1 border-b border-orange-200 sticky top-0 z-20 bg-orange-50">
-            <span className="flex-1">🚦 拦截队列 ({pausedFrames.length})</span>
+            <span className="flex-1">🚦 {t('devtools.websocket.frameList.interceptQueue', { count: pausedFrames.length })}</span>
           </div>
           {pausedFrames.map((pf) => {
             const isSent = pf.direction === 'sent';
@@ -98,9 +101,9 @@ export const WsFrameList: React.FC = () => {
                   )}
                 </span>
                 <span className="w-24 flex-shrink-0 text-[10px] text-gray-400 font-mono">
-                  {formatTimestamp(pf.timestamp)}
+                  {formatTimestamp(pf.timestamp, i18n.resolvedLanguage ?? i18n.language)}
                 </span>
-                <Tag color="orange" className="text-[10px] mr-1 leading-none py-0">{isSent ? '出站' : '入站'}</Tag>
+                <Tag color="orange" className="text-[10px] mr-1 leading-none py-0">{isSent ? t('devtools.websocket.frameList.outgoing') : t('devtools.websocket.frameList.incoming')}</Tag>
                 <span className="flex-1 text-xs font-mono text-gray-600 break-all min-w-0 truncate">
                   {previewData(pf.data, 60)}
                 </span>
@@ -112,7 +115,7 @@ export const WsFrameList: React.FC = () => {
                     className="text-[10px]"
                     onClick={(e) => { e.stopPropagation(); forwardWsFrame(pf.interceptId); }}
                   >
-                    放行
+                    {t('devtools.websocket.frameList.allow')}
                   </Button>
                   <Button
                     danger
@@ -121,7 +124,7 @@ export const WsFrameList: React.FC = () => {
                     className="text-[10px]"
                     onClick={(e) => { e.stopPropagation(); dropWsFrame(pf.interceptId); }}
                   >
-                    丢弃
+                    {t('devtools.websocket.frameList.drop')}
                   </Button>
                 </div>
               </div>
@@ -133,9 +136,9 @@ export const WsFrameList: React.FC = () => {
       {/* 表头 */}
       <div className="flex items-center text-[10px] text-gray-400 font-medium px-3 py-1 border-b border-gray-100 bg-gray-50/50 sticky top-0 z-10">
         <span className="w-6 flex-shrink-0" />
-        <span className="w-24 flex-shrink-0">时间</span>
-        <span className="flex-1">数据</span>
-        <span className="w-16 flex-shrink-0 text-right">大小</span>
+        <span className="w-24 flex-shrink-0">{t('devtools.websocket.frameList.columns.time')}</span>
+        <span className="flex-1">{t('devtools.websocket.frameList.columns.data')}</span>
+        <span className="w-16 flex-shrink-0 text-right">{t('devtools.websocket.frameList.columns.size')}</span>
       </div>
 
       {filteredFrames.map((frame) => {
@@ -164,7 +167,7 @@ export const WsFrameList: React.FC = () => {
 
             {/* 时间 */}
             <span className="w-24 flex-shrink-0 text-[10px] text-gray-400 font-mono pt-0.5">
-              {formatTimestamp(frame.timestamp)}
+              {formatTimestamp(frame.timestamp, i18n.resolvedLanguage ?? i18n.language)}
             </span>
 
             {/* 数据预览 */}

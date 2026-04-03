@@ -26,14 +26,15 @@ export const DiffLayout: React.FC = () => {
 
   const diffResult = useMemo(() => {
     if (!compared) return null;
-    const opts = { ignoreWhitespace };
     switch (mode) {
       case 'chars':
-        return Diff.diffChars(leftText, rightText, opts);
+        return Diff.diffChars(leftText, rightText);
       case 'words':
-        return Diff.diffWords(leftText, rightText, opts);
+        return Diff.diffWords(leftText, rightText);
       case 'lines':
-        return Diff.diffLines(leftText, rightText, opts);
+        return ignoreWhitespace
+          ? Diff.diffTrimmedLines(leftText, rightText)
+          : Diff.diffLines(leftText, rightText);
     }
   }, [leftText, rightText, mode, ignoreWhitespace, compared]);
 

@@ -14,6 +14,8 @@ import { RequestConfig } from './RequestConfig';
 import type { ApiResponse } from './ResponseViewer';
 import { ResponseViewer } from './ResponseViewer';
 
+type RuntimePort = ReturnType<typeof browser.runtime.connect>;
+
 const HTTP_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
 const METHOD_COLORS: Record<string, string> = {
@@ -62,12 +64,12 @@ export const ApiTesterLayout: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
 
   // Background port
-  const portRef = useRef<browser.runtime.Port | null>(null);
+  const portRef = useRef<RuntimePort | null>(null);
   const pendingIdRef = useRef<string | null>(null);
 
   // 建立与 background 的长连接
   useEffect(() => {
-    if (typeof chrome === 'undefined' || !browser.runtime?.connect) return;
+    if (typeof browser === 'undefined' || !browser.runtime?.connect) return;
     const port = browser.runtime.connect({ name: 'hellcat-devtools' });
     portRef.current = port;
 

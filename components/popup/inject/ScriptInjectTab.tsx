@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Switch, Tooltip, Empty, Popconfirm, Dropdown, message } from 'antd';
 import type { MenuProps } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   PlusOutlined,
   EditOutlined,
@@ -26,6 +27,7 @@ interface Props {
 export const ScriptInjectTab: React.FC<Props> = ({
   scripts, onAdd, onUpdate, onRemove, onToggle, onInjectAll, onInjectSingle,
 }) => {
+  const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingScript, setEditingScript] = useState<InjectScript | null>(null);
   const [saving, setSaving] = useState(false);
@@ -40,16 +42,18 @@ export const ScriptInjectTab: React.FC<Props> = ({
   const handleImportPreset = async (key: string) => {
     const preset = PRESET_SCRIPTS.find(p => p.key === key);
     if (!preset) return;
+    const presetLabel = t(preset.labelKey);
+
     // 检查是否已存在同名脚本
-    if (scripts.some(s => s.name === preset.label)) {
-      message.warning(`脚本「${preset.label}」已存在`);
+    if (scripts.some(s => s.name === presetLabel || s.code === preset.code)) {
+      message.warning(t('popup.inject.script.messages.presetExists', { name: presetLabel }));
       return;
     }
     try {
-      await onAdd(preset.label, preset.code);
-      message.success(`已添加预设脚本: ${preset.label}`);
+      await onAdd(presetLabel, preset.code);
+      message.success(t('popup.inject.script.messages.presetAdded', { name: presetLabel }));
     } catch (err) {
-      message.error(err instanceof Error ? err.message : '添加预设失败');
+      message.error(err instanceof Error ? err.message : t('popup.inject.script.messages.presetAddFailed'));
     }
   };
 
@@ -57,8 +61,8 @@ export const ScriptInjectTab: React.FC<Props> = ({
     key: p.key,
     label: (
       <div className="flex flex-col py-0.5">
-        <span className="text-xs font-medium">{p.label}</span>
-        <span className="text-[10px] text-gray-400 leading-tight">{p.description}</span>
+        <span className="text-xs font-medium">{t(p.labelKey)}</span>
+        <span className="text-[10px] text-gray-400 leading-tight">{t(p.descriptionKey)}</span>
       </div>
     ),
   }));
@@ -77,9 +81,9 @@ export const ScriptInjectTab: React.FC<Props> = ({
         await onAdd(name, code);
       }
       setModalOpen(false);
-      message.success('已保存');
+      message.success(t('common.feedback.saveSuccess'));
     } catch (err) {
-      message.error(err instanceof Error ? err.message : '保存失败');
+      message.error(err instanceof Error ? err.message : t('common.feedback.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -92,7 +96,7 @@ export const ScriptInjectTab: React.FC<Props> = ({
     try {
       await onToggle(id);
     } catch (err) {
-      message.error(err instanceof Error ? err.message : '切换自动注入状态失败');
+      message.error(err instanceof Error ? err.message : t('popup.inject.script.messages.toggleFailed'));
     } finally {
       setPendingToggleIds(prev => prev.filter(item => item !== id));
     }
@@ -101,23 +105,28 @@ export const ScriptInjectTab: React.FC<Props> = ({
   const handleInjectAll = async () => {
     const enabledCount = scripts.filter(s => s.enabled).length;
     if (enabledCount === 0) {
-      message.warning('没有启用的脚本');
+      message.warning(t('popup.inject.script.messages.noEnabledScripts'));
       return;
     }
     const result = await onInjectAll();
     if (result.failed === 0) {
-      message.success(`已注入 ${result.success} 个脚本`);
+      message.success(t('popup.inject.script.messages.injectedAll', { count: result.success }));
     } else {
-      message.warning(`成功 ${result.success} 个，失败 ${result.failed} 个`);
+      message.warning(t('popup.inject.script.messages.injectedPartial', {
+        success: result.success,
+        failed: result.failed,
+      }));
     }
   };
 
   const handleRunSingle = async (script: InjectScript) => {
     const result = await onInjectSingle(script.code);
     if (result.ok) {
-      message.success(`已执行: ${script.name}`);
+      message.success(t('popup.inject.script.messages.runSuccess', { name: script.name }));
     } else {
-      message.error(`执行失败: ${result.error || '未知错误'}`);
+      message.error(t('popup.inject.script.messages.runFailed', {
+        error: result.error || t('common.status.unknown'),
+      }));
     }
   };
 
@@ -125,23 +134,23 @@ export const ScriptInjectTab: React.FC<Props> = ({
     <div className="flex flex-col gap-2 h-full">
       {/* 工具栏 */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-500">脚本列表 ({scripts.length})</span>
+        <span className="text-xs text-gray-500">{t('popup.inject.script.listTitle', { count: scripts.length })}</span>
         <div className="flex items-center gap-1">
-          <Tooltip title="注入所有启用的脚本">
+          <Tooltip title={t('popup.inject.script.tooltips.injectAll')}>
             <Button size="small" type="primary" icon={<ThunderboltOutlined />} onClick={handleInjectAll}>
-              注入
+              {t('common.actions.inject')}
             </Button>
           </Tooltip>
           <Dropdown
-            menu={{ items: presetMenuItems, onClick: ({ key }) => void handleImportPreset(key) }}
+            menu={{ items: presetMenuItems, onClick: ({ key }) => void handleImportPreset(String(key)) }}
             placement="bottomRight"
             trigger={['click']}
           >
-            <Tooltip title="预设脚本">
+            <Tooltip title={t('popup.inject.script.tooltips.presets')}>
               <Button size="small" icon={<AppstoreAddOutlined />} />
             </Tooltip>
           </Dropdown>
-          <Tooltip title="添加脚本">
+          <Tooltip title={t('popup.inject.script.tooltips.addScript')}>
             <Button size="small" icon={<PlusOutlined />} onClick={handleAdd} />
           </Tooltip>
         </div>
@@ -149,7 +158,7 @@ export const ScriptInjectTab: React.FC<Props> = ({
 
       {/* 脚本列表 */}
       {scripts.length === 0 ? (
-        <Empty description="暂无脚本" image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-6" />
+        <Empty description={t('popup.inject.script.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-6" />
       ) : (
         <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto">
           {scripts.map(script => (
@@ -158,7 +167,7 @@ export const ScriptInjectTab: React.FC<Props> = ({
               className="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded border border-gray-100 hover:border-blue-200 transition-colors"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <Tooltip title="自动执行脚本" placement="top">
+                <Tooltip title={t('popup.inject.script.tooltips.autoRun')} placement="top">
                   <Switch
                     size="small"
                     checked={script.enabled}
@@ -169,14 +178,19 @@ export const ScriptInjectTab: React.FC<Props> = ({
                 <span className="text-xs truncate" title={script.name}>{script.name}</span>
               </div>
               <div className="flex items-center gap-0.5 shrink-0">
-                <Tooltip title="执行">
+                <Tooltip title={t('popup.inject.script.tooltips.run')}>
                   <Button type="text" size="small" icon={<PlayCircleOutlined />} onClick={() => handleRunSingle(script)} />
                 </Tooltip>
-                <Tooltip title="编辑">
+                <Tooltip title={t('popup.inject.script.tooltips.edit')}>
                   <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(script)} />
                 </Tooltip>
-                <Popconfirm title="确定删除？" onConfirm={() => onRemove(script.id)} okText="确定" cancelText="取消">
-                  <Tooltip title="删除">
+                <Popconfirm
+                  title={t('popup.inject.script.confirmDelete')}
+                  onConfirm={() => onRemove(script.id)}
+                  okText={t('common.actions.confirm')}
+                  cancelText={t('common.actions.cancel')}
+                >
+                  <Tooltip title={t('popup.inject.script.tooltips.delete')}>
                     <Button type="text" size="small" danger icon={<DeleteOutlined />} />
                   </Tooltip>
                 </Popconfirm>

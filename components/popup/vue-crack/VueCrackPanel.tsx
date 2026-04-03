@@ -10,11 +10,13 @@ import {
   ReloadOutlined,
   EditOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useVueCrack } from '@/hooks/useVueCrack';
 
 const { Text } = Typography;
 
 export const VueCrackPanel: React.FC = () => {
+  const { t } = useTranslation();
   const {
     status,
     analysis,
@@ -71,7 +73,7 @@ export const VueCrackPanel: React.FC = () => {
   /** 复制单个 URL */
   const copySingle = async (url: string) => {
     await navigator.clipboard.writeText(url);
-    message.success('已复制');
+    message.success(t('common.feedback.copySuccess'));
   };
 
   /** 打开单个 URL */
@@ -82,12 +84,12 @@ export const VueCrackPanel: React.FC = () => {
 
   const handleCopyPaths = async () => {
     await copyAllPaths();
-    message.success('已复制所有路径');
+    message.success(t('popup.vueCrack.messages.copiedPaths'));
   };
 
   const handleCopyUrls = async () => {
     await copyAllUrls(customBasePath);
-    message.success('已复制所有URL');
+    message.success(t('popup.vueCrack.messages.copiedUrls'));
   };
 
   // ---- 渲染状态 ----
@@ -96,7 +98,7 @@ export const VueCrackPanel: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center py-10">
         <Spin size="small" />
-        <Text className="mt-2 text-[11px]" type="secondary">正在检测 Vue.js ...</Text>
+        <Text className="mt-2 text-[11px]" type="secondary">{t('popup.vueCrack.status.detecting')}</Text>
       </div>
     );
   }
@@ -106,7 +108,7 @@ export const VueCrackPanel: React.FC = () => {
       <div className="flex flex-col items-center justify-center py-10 gap-2">
         <ExclamationCircleOutlined className="text-red-500 text-lg" />
         <Text type="danger" className="text-[11px]">{error}</Text>
-        <Button size="small" icon={<ReloadOutlined />} onClick={detect}>重试</Button>
+        <Button size="small" icon={<ReloadOutlined />} onClick={detect}>{t('common.actions.retry')}</Button>
       </div>
     );
   }
@@ -115,8 +117,8 @@ export const VueCrackPanel: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-2">
         <CloseCircleOutlined className="text-red-500 text-lg" />
-        <Text type="secondary" className="text-[11px]">未检测到 Vue.js</Text>
-        <Button size="small" icon={<ReloadOutlined />} onClick={detect}>重新检测</Button>
+        <Text type="secondary" className="text-[11px]">{t('popup.vueCrack.status.notDetected')}</Text>
+        <Button size="small" icon={<ReloadOutlined />} onClick={detect}>{t('popup.vueCrack.actions.redetect')}</Button>
       </div>
     );
   }
@@ -125,7 +127,7 @@ export const VueCrackPanel: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-2">
         <Button type="primary" size="small" icon={<SearchOutlined />} onClick={detect}>
-          检测 Vue
+          {t('popup.vueCrack.actions.detect')}
         </Button>
       </div>
     );
@@ -142,26 +144,26 @@ export const VueCrackPanel: React.FC = () => {
         </Tag>
         {analysis?.routerDetected ? (
           <Tag color="blue" className="text-[10px] m-0">
-            <CheckCircleOutlined /> Router
+            <CheckCircleOutlined /> {t('popup.vueCrack.labels.router')}
           </Tag>
         ) : (
           <Tag color="red" className="text-[10px] m-0">
-            <CloseCircleOutlined /> 未检测到 Router
+            <CloseCircleOutlined /> {t('popup.vueCrack.status.routerNotDetected')}
           </Tag>
         )}
         {(analysis?.modifiedRoutes?.length ?? 0) > 0 && (
           <Tag color="orange" className="text-[10px] m-0">
-            已修改 {analysis!.modifiedRoutes.length} 个 auth
+            {t('popup.vueCrack.status.modifiedRoutes', { count: analysis!.modifiedRoutes.length })}
           </Tag>
         )}
-        <Tag color="purple" className="text-[10px] m-0">守卫已清除</Tag>
+        <Tag color="purple" className="text-[10px] m-0">{t('popup.vueCrack.status.guardsCleared')}</Tag>
         <Button size="small" type="text" icon={<ReloadOutlined />} onClick={detect} className="ml-auto" />
       </div>
 
       {/* Base Path 状态栏 */}
       {analysis?.routerDetected && (
         <div className="flex items-center gap-1.5 text-[11px] bg-gray-50 rounded px-2 py-1">
-          <Text type="secondary" className="text-[11px] shrink-0">Base Path:</Text>
+          <Text type="secondary" className="text-[11px] shrink-0">{t('popup.vueCrack.labels.basePath')}</Text>
           {editingBasePath ? (
             <>
               <Input
@@ -169,12 +171,12 @@ export const VueCrackPanel: React.FC = () => {
                 value={basePathDraft}
                 onChange={(e) => setBasePathDraft(e.target.value)}
                 onPressEnter={commitBasePath}
-                placeholder="例如 /admin"
+                placeholder={t('popup.vueCrack.placeholders.basePath')}
                 className="flex-1 text-[11px] h-6!"
                 autoFocus
               />
-              <Button size="small" type="primary" onClick={commitBasePath} className="h-6! text-[10px]">确定</Button>
-              <Button size="small" onClick={resetBasePath} className="h-6! text-[10px]">重置</Button>
+              <Button size="small" type="primary" onClick={commitBasePath} className="h-6! text-[10px]">{t('common.actions.confirm')}</Button>
+              <Button size="small" onClick={resetBasePath} className="h-6! text-[10px]">{t('popup.vueCrack.actions.resetBasePath')}</Button>
             </>
           ) : (
             <>
@@ -183,15 +185,15 @@ export const VueCrackPanel: React.FC = () => {
                 className="text-[11px] cursor-pointer"
                 onClick={() => { setBasePathDraft(effectiveBasePath); setEditingBasePath(true); }}
               >
-                {effectiveBasePath || '(无)'}
+                {effectiveBasePath || t('popup.vueCrack.labels.none')}
               </Text>
               {customBasePath !== undefined && (
-                <Tag color="blue" className="text-[9px] m-0 leading-tight">自定义</Tag>
+                <Tag color="blue" className="text-[9px] m-0 leading-tight">{t('popup.vueCrack.labels.custom')}</Tag>
               )}
               {customBasePath === undefined && inferredBasePath && (
-                <Tag color="cyan" className="text-[9px] m-0 leading-tight">推断</Tag>
+                <Tag color="cyan" className="text-[9px] m-0 leading-tight">{t('popup.vueCrack.labels.inferred')}</Tag>
               )}
-              <Tooltip title="编辑 Base Path">
+              <Tooltip title={t('popup.vueCrack.tooltips.editBasePath')}>
                 <EditOutlined
                   className="text-gray-400 hover:text-blue-500 cursor-pointer ml-auto"
                   onClick={() => { setBasePathDraft(effectiveBasePath); setEditingBasePath(true); }}
@@ -205,8 +207,8 @@ export const VueCrackPanel: React.FC = () => {
       {/* 操作按钮 */}
       {fullUrls.length > 0 && (
         <Space size={4}>
-          <Button size="small" icon={<CopyOutlined />} onClick={handleCopyPaths}>复制路径</Button>
-          <Button size="small" icon={<CopyOutlined />} onClick={handleCopyUrls}>复制URL</Button>
+          <Button size="small" icon={<CopyOutlined />} onClick={handleCopyPaths}>{t('popup.vueCrack.actions.copyPaths')}</Button>
+          <Button size="small" icon={<CopyOutlined />} onClick={handleCopyUrls}>{t('popup.vueCrack.actions.copyUrls')}</Button>
         </Space>
       )}
 
@@ -223,7 +225,7 @@ export const VueCrackPanel: React.FC = () => {
                   {item.url}
                 </Text>
                 <Space size={6} className="shrink-0">
-                  <Tooltip title="复制URL">
+                  <Tooltip title={t('popup.vueCrack.tooltips.copyUrl')}>
                     <Button
                       type="default" size="small"
                       icon={<CopyOutlined />}
@@ -231,7 +233,7 @@ export const VueCrackPanel: React.FC = () => {
                       onClick={() => copySingle(item.url)}
                     />
                   </Tooltip>
-                  <Tooltip title="打开网页">
+                  <Tooltip title={t('popup.vueCrack.tooltips.openPage')}>
                     <Button
                       type="primary" size="small"
                       icon={<LinkOutlined />}
@@ -245,7 +247,7 @@ export const VueCrackPanel: React.FC = () => {
           )}
         />
       ) : (
-        <Empty description="没有找到路由" image={Empty.PRESENTED_IMAGE_SIMPLE} className="!my-4" />
+        <Empty description={t('popup.vueCrack.empty.noRoutes')} image={Empty.PRESENTED_IMAGE_SIMPLE} className="!my-4" />
       )}
     </div>
   );

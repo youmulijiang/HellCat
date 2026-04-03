@@ -1,5 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 
+type BrowserCookie = {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  secure: boolean;
+  httpOnly: boolean;
+  sameSite?: string;
+  expirationDate?: number;
+};
+
 export interface CookieItem {
   name: string;
   value: string;
@@ -14,7 +25,7 @@ export interface CookieItem {
 }
 
 /** 将浏览器 cookie 转为内部格式 */
-const toCookieItem = (c: browser.Cookies.Cookie): CookieItem => ({
+const toCookieItem = (c: BrowserCookie): CookieItem => ({
   name: c.name,
   value: c.value,
   domain: c.domain,

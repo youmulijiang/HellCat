@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Input, List, message, Image, Progress, Tag } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   CameraOutlined,
   DownloadOutlined,
@@ -32,6 +33,7 @@ interface ScreenshotPreview extends UrlScreenshotRecord {
 }
 
 export const ScreenshotTab: React.FC = () => {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [results, setResults] = useState<ScreenshotPreview[]>([]);
   const [state, setState] = useState<UrlScreenshotState>(createIdleUrlScreenshotState());
@@ -44,8 +46,10 @@ export const ScreenshotTab: React.FC = () => {
   const lineCount = text.split(/[\n\r]+/).filter((l) => l.trim()).length;
 
   const statusTag = state.running
-    ? (state.stopping ? '停止中' : '截图中')
-    : (state.completed ? '已完成' : (state.processedCount > 0 ? '已停止' : '待开始'));
+    ? (state.stopping ? t('popup.urlOpener.screenshot.statuses.stopping') : t('popup.urlOpener.screenshot.statuses.capturing'))
+    : (state.completed
+      ? t('popup.urlOpener.screenshot.statuses.completed')
+      : (state.processedCount > 0 ? t('popup.urlOpener.screenshot.statuses.stopped') : t('popup.urlOpener.screenshot.statuses.pending')));
 
   const revokePreviewUrls = useCallback(() => {
     blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -114,14 +118,20 @@ export const ScreenshotTab: React.FC = () => {
 
     if (prevRunningRef.current && !state.running) {
       if (state.completed) {
-        message.success(`截图完成，成功 ${state.capturedCount}/${state.total}`);
+        message.success(t('popup.urlOpener.screenshot.messages.completed', {
+          success: state.capturedCount,
+          total: state.total,
+        }));
       } else if (state.processedCount > 0 || state.stopping) {
-        message.info(`截图已停止，成功 ${state.capturedCount}/${state.total}`);
+        message.info(t('popup.urlOpener.screenshot.messages.stopped', {
+          success: state.capturedCount,
+          total: state.total,
+        }));
       }
     }
 
     prevRunningRef.current = state.running;
-  }, [state]);
+  }, [state, t]);
 
   const downloadBlob = useCallback((blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
@@ -142,13 +152,13 @@ export const ScreenshotTab: React.FC = () => {
   const runAction = useCallback(async (payload: { action: string; urls?: string[] }) => {
     const response = await browser.runtime.sendMessage(payload) as UrlScreenshotResponse;
     if (!response?.success) {
-      throw new Error(response?.error || '操作失败');
+      throw new Error(response?.error || t('popup.urlOpener.screenshot.messages.actionFailed'));
     }
 
     const nextState = normalizeUrlScreenshotState(response.state);
     setState(nextState);
     await loadResults(nextState.sessionId);
-  }, [loadResults]);
+  }, [loadResults, t]);
 
   const getProgressCurrent = () => {
     if (state.running) {
@@ -162,15 +172,15 @@ export const ScreenshotTab: React.FC = () => {
     const urls = buildUrls();
 
     if (urls.length === 0) {
-      message.warning('请输入至少一个URL');
+      message.warning(t('popup.urlOpener.screenshot.messages.inputRequired'));
       return;
     }
 
     try {
       await runAction({ action: 'startUrlScreenshot', urls });
-      message.success(`已开始截图，共 ${urls.length} 个 URL`);
+      message.success(t('popup.urlOpener.screenshot.messages.started', { count: urls.length }));
     } catch (err) {
-      message.error(err instanceof Error ? err.message : '启动截图失败');
+      message.error(err instanceof Error ? err.message : t('popup.urlOpener.screenshot.messages.startFailed'));
     }
   };
 
@@ -179,7 +189,7 @@ export const ScreenshotTab: React.FC = () => {
     try {
       await runAction({ action: 'stopUrlScreenshot' });
     } catch (err) {
-      message.error(err instanceof Error ? err.message : '停止截图失败');
+      message.error(err instanceof Error ? err.message : t('popup.urlOpener.screenshot.messages.stopFailed'));
     }
   };
 
@@ -187,9 +197,9 @@ export const ScreenshotTab: React.FC = () => {
   const handleClear = async () => {
     try {
       await runAction({ action: 'clearUrlScreenshotResults' });
-      message.success('已清空截图结果');
+      message.success(t('popup.urlOpener.screenshot.messages.cleared'));
     } catch (err) {
-      message.error(err instanceof Error ? err.message : '清空截图失败');
+      message.error(err instanceof Error ? err.message : t('popup.urlOpener.screenshot.messages.clearFailed'));
     }
   };
 
@@ -211,9 +221,9 @@ export const ScreenshotTab: React.FC = () => {
       })));
       const zipBlob = createZipBlob(files);
       downloadBlob(zipBlob, `url-screenshots-${state.sessionId ?? Date.now()}.zip`);
-      message.success(`已导出 ZIP，共 ${results.length} 张截图`);
+      message.success(t('popup.urlOpener.screenshot.messages.exportedZip', { count: results.length }));
     } catch {
-      message.error('导出 ZIP 失败');
+      message.error(t('popup.urlOpener.screenshot.messages.exportZipFailed'));
     } finally {
       setExporting(false);
     }
@@ -228,7 +238,7 @@ export const ScreenshotTab: React.FC = () => {
         <TextArea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={'每行一个URL，例如:\nexample.com\nhttps://google.com'}
+          placeholder={t('popup.urlOpener.screenshot.placeholder')}
           className="!h-full !resize-none text-xs font-mono"
           spellCheck={false}
           disabled={state.running}
@@ -248,12 +258,12 @@ export const ScreenshotTab: React.FC = () => {
           </div>
           <Progress percent={percent} size="small" showInfo={false} />
           <div className="flex items-center justify-between text-[10px] text-gray-500">
-            <span>成功 {state.capturedCount}</span>
-            <span>失败 {state.failedCount}</span>
+            <span>{t('popup.urlOpener.screenshot.summary.successCount', { count: state.capturedCount })}</span>
+            <span>{t('popup.urlOpener.screenshot.summary.failedCount', { count: state.failedCount })}</span>
           </div>
           {state.currentUrl && (
             <div className="truncate text-[10px] text-gray-500" title={state.currentUrl}>
-              当前: {state.currentUrl}
+              {t('popup.urlOpener.screenshot.currentUrl', { url: state.currentUrl })}
             </div>
           )}
         </div>
@@ -284,7 +294,7 @@ export const ScreenshotTab: React.FC = () => {
                     width={48}
                     height={32}
                     className="rounded border border-gray-200 object-cover shrink-0"
-                    preview={{ mask: '预览' }}
+                    preview={{ mask: t('popup.urlOpener.screenshot.previewMask') }}
                   />
                   <span className="text-[11px] text-gray-600 truncate flex-1" title={item.url}>
                     {item.url}
@@ -300,13 +310,18 @@ export const ScreenshotTab: React.FC = () => {
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-gray-400">
           {results.length > 0
-            ? `${results.length} 张截图`
-            : (state.total > 0 ? `成功 ${state.capturedCount} / 失败 ${state.failedCount}` : `${lineCount} 个URL`)}
+            ? t('popup.urlOpener.screenshot.imageCount', { count: results.length })
+            : (state.total > 0
+              ? t('popup.urlOpener.screenshot.summary.successFailure', {
+                success: state.capturedCount,
+                failed: state.failedCount,
+              })
+              : t('popup.urlOpener.slideshow.countLabel', { count: lineCount }))}
         </span>
         <div className="flex items-center gap-1">
           {state.running ? (
             <Button size="small" danger icon={<StopOutlined />} onClick={handleStop}>
-              {state.stopping ? '停止中' : '停止'}
+              {state.stopping ? t('common.status.stopping') : t('common.actions.stop')}
             </Button>
           ) : (
             <>
@@ -317,7 +332,7 @@ export const ScreenshotTab: React.FC = () => {
                     icon={<DeleteOutlined />}
                     onClick={handleClear}
                   >
-                    清空
+                    {t('common.actions.clear')}
                   </Button>
                   <Button
                     size="small"
@@ -325,7 +340,7 @@ export const ScreenshotTab: React.FC = () => {
                     icon={<DownloadOutlined />}
                     onClick={handleExportAll}
                   >
-                    导出 ZIP
+                    {t('popup.urlOpener.screenshot.buttons.exportZip')}
                   </Button>
                 </>
               )}
@@ -336,7 +351,7 @@ export const ScreenshotTab: React.FC = () => {
                 disabled={lineCount === 0 || exporting}
                 onClick={handleStart}
               >
-                开始截图
+                {t('common.actions.start')}
               </Button>
             </>
           )}

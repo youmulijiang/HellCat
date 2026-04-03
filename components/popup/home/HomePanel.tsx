@@ -1,14 +1,17 @@
 import React from 'react';
-import { GithubOutlined, UserOutlined } from '@ant-design/icons';
+import { GithubOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 export const HomePanel: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="flex h-full w-full items-center justify-center overflow-hidden px-6 py-6">
       <div className="flex w-full max-w-md flex-col items-center justify-center pb-10">
         <div className="flex w-full items-center justify-center">
           <img
             src="/icon/logo.png"
-            alt="Hellcat Logo"
+            alt={t('popup.home.logoAlt')}
             className="max-h-[42vh] w-full max-w-[300px] object-contain select-none"
           />
         </div>
@@ -18,7 +21,7 @@ export const HomePanel: React.FC = () => {
             Hellcat
           </h1>
           <p className="mt-2 m-0 text-sm leading-6 text-slate-400">
-            浏览器安全测试工具箱
+            {t('popup.home.tagline')}
           </p>
           <a
             href="https://github.com/youmulijiang/Hellcat"
@@ -27,7 +30,7 @@ export const HomePanel: React.FC = () => {
             className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700"
           >
             <GithubOutlined />
-            柚木梨酱
+            {t('popup.home.author')}
           </a>
         </div>
       </div>

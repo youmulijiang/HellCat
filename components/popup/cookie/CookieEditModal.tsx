@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Switch, Select, InputNumber } from 'antd';
+import { useTranslation } from 'react-i18next';
 import type { CookieItem } from '@/hooks/useCookies';
 
 interface CookieEditModalProps {
@@ -10,13 +11,6 @@ interface CookieEditModalProps {
   currentDomain: string;
 }
 
-const SAME_SITE_OPTIONS = [
-  { label: 'Unspecified', value: 'unspecified' },
-  { label: 'Lax', value: 'lax' },
-  { label: 'Strict', value: 'strict' },
-  { label: 'None', value: 'no_restriction' },
-];
-
 export const CookieEditModal: React.FC<CookieEditModalProps> = ({
   open,
   cookie,
@@ -24,8 +18,16 @@ export const CookieEditModal: React.FC<CookieEditModalProps> = ({
   onCancel,
   currentDomain,
 }) => {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const isEdit = !!cookie;
+
+  const sameSiteOptions = [
+    { label: t('popup.cookie.sameSite.unspecified'), value: 'unspecified' },
+    { label: t('popup.cookie.sameSite.lax'), value: 'lax' },
+    { label: t('popup.cookie.sameSite.strict'), value: 'strict' },
+    { label: t('popup.cookie.sameSite.none'), value: 'no_restriction' },
+  ];
 
   useEffect(() => {
     if (open) {
@@ -71,43 +73,43 @@ export const CookieEditModal: React.FC<CookieEditModalProps> = ({
 
   return (
     <Modal
-      title={isEdit ? '编辑 Cookie' : '添加 Cookie'}
+      title={isEdit ? t('popup.cookie.modal.editTitle') : t('popup.cookie.modal.addTitle')}
       open={open}
       onOk={handleOk}
       onCancel={onCancel}
       width={380}
-      okText="保存"
-      cancelText="取消"
+      okText={t('common.actions.save')}
+      cancelText={t('common.actions.cancel')}
       destroyOnClose
     >
       <Form form={form} layout="vertical" size="small" className="mt-3">
-        <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
-          <Input placeholder="cookie name" />
+        <Form.Item name="name" label={t('common.fields.name')} rules={[{ required: true, message: t('popup.cookie.validation.nameRequired') }]}>
+          <Input placeholder={t('popup.cookie.modal.namePlaceholder')} />
         </Form.Item>
-        <Form.Item name="value" label="值" rules={[{ required: true, message: '请输入值' }]}>
-          <Input.TextArea placeholder="cookie value" rows={2} />
+        <Form.Item name="value" label={t('common.fields.value')} rules={[{ required: true, message: t('popup.cookie.validation.valueRequired') }]}>
+          <Input.TextArea placeholder={t('popup.cookie.modal.valuePlaceholder')} rows={2} />
         </Form.Item>
         <div className="flex gap-2">
-          <Form.Item name="domain" label="域名" className="flex-1" rules={[{ required: true }]}>
+          <Form.Item name="domain" label={t('common.fields.domain')} className="flex-1" rules={[{ required: true, message: t('popup.cookie.validation.domainRequired') }]}>
             <Input placeholder=".example.com" />
           </Form.Item>
-          <Form.Item name="path" label="路径" className="flex-1" rules={[{ required: true }]}>
+          <Form.Item name="path" label={t('common.fields.path')} className="flex-1" rules={[{ required: true, message: t('popup.cookie.validation.pathRequired') }]}>
             <Input placeholder="/" />
           </Form.Item>
         </div>
         <div className="flex gap-2">
-          <Form.Item name="sameSite" label="SameSite" className="flex-1">
-            <Select options={SAME_SITE_OPTIONS} />
+          <Form.Item name="sameSite" label={t('common.fields.sameSite')} className="flex-1">
+            <Select options={sameSiteOptions} />
           </Form.Item>
-          <Form.Item name="expirationDate" label="过期时间(时间戳)" className="flex-1">
-            <InputNumber className="w-full" placeholder="留空=会话" />
+          <Form.Item name="expirationDate" label={t('common.fields.expirationDate')} className="flex-1">
+            <InputNumber className="w-full" placeholder={t('popup.cookie.modal.expirationPlaceholder')} />
           </Form.Item>
         </div>
         <div className="flex gap-4">
-          <Form.Item name="secure" label="Secure" valuePropName="checked">
+          <Form.Item name="secure" label={t('common.fields.secure')} valuePropName="checked">
             <Switch size="small" />
           </Form.Item>
-          <Form.Item name="httpOnly" label="HttpOnly" valuePropName="checked">
+          <Form.Item name="httpOnly" label={t('common.fields.httpOnly')} valuePropName="checked">
             <Switch size="small" />
           </Form.Item>
         </div>

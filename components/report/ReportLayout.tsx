@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, Dropdown, Input, Popconfirm, Empty, message, Tooltip } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -21,6 +22,7 @@ import { db, type Report, type ReportImage } from '@/stores/reportDb';
  * 左侧报告列表 + 右侧 Markdown 编辑器
  */
 export const ReportLayout: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [reports, setReports] = useState<Report[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -85,8 +87,8 @@ export const ReportLayout: React.FC = () => {
     setContent((prev) => prev + '\n' + insertText);
     setDirty(true);
     scheduleSave();
-    message.success(`已粘贴 ${imageFiles.length} 张图片`);
-  }, [activeId]);
+    message.success(t('devtools.reportWriter.messages.imagesPasted', { count: imageFiles.length }));
+  }, [activeId, t]);
 
   // 组件卸载时释放 blob URLs
   useEffect(() => {
@@ -115,18 +117,21 @@ export const ReportLayout: React.FC = () => {
   /** 新建报告 */
   const handleCreate = useCallback(async () => {
     const now = Date.now();
+    const locale = i18n.resolvedLanguage ?? i18n.language;
     const newReport: Report = {
       id: crypto.randomUUID(),
-      title: `未命名报告 ${new Date().toLocaleDateString()}`,
-      content: '# 新报告\n\n在此编写报告内容...',
+      title: t('devtools.reportWriter.defaults.untitledReport', {
+        date: new Date().toLocaleDateString(locale),
+      }),
+      content: t('devtools.reportWriter.defaults.initialContent'),
       createdAt: now,
       updatedAt: now,
     };
     await db.reports.add(newReport);
     await loadReports();
     selectReport(newReport);
-    message.success('已创建新报告');
-  }, [loadReports, selectReport]);
+    message.success(t('devtools.reportWriter.messages.created'));
+  }, [i18n.language, i18n.resolvedLanguage, loadReports, selectReport, t]);
 
   /** 保存报告（将 blob URL 还原为 indexeddb:// 占位符再存储） */
   const handleSave = useCallback(async () => {
@@ -139,8 +144,8 @@ export const ReportLayout: React.FC = () => {
     });
     setDirty(false);
     await loadReports();
-    message.success('已保存');
-  }, [activeId, title, content, loadReports, unresolveImageUrls]);
+    message.success(t('common.feedback.saveSuccess'));
+  }, [activeId, content, loadReports, t, title, unresolveImageUrls]);
 
   /** 自动保存（防抖 2s） */
   const scheduleSave = useCallback(() => {
@@ -162,8 +167,8 @@ export const ReportLayout: React.FC = () => {
       setDirty(false);
     }
     await loadReports();
-    message.success('已删除');
-  }, [activeId, loadReports, revokeBlobUrls]);
+    message.success(t('common.feedback.deleteSuccess'));
+  }, [activeId, loadReports, revokeBlobUrls, t]);
 
   /** 获取内联了 base64 图片的 Markdown 内容 */
   const getExportMarkdown = useCallback(async () => {
@@ -182,9 +187,9 @@ export const ReportLayout: React.FC = () => {
   }, [activeId, content, unresolveImageUrls]);
 
   /** 构建完整的 HTML 页面（带样式） */
-  const buildHtmlPage = useCallback((htmlBody: string, reportTitle: string) => {
+  const buildHtmlPage = useCallback((htmlBody: string, reportTitle: string, lang: string) => {
     return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="${lang}">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -220,35 +225,42 @@ export const ReportLayout: React.FC = () => {
     const blob = new Blob([exportContent], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const defaultFileName = t('devtools.reportWriter.export.defaultFileName');
     a.href = url;
-    a.download = `${title || '报告'}.md`;
+    a.download = `${title || defaultFileName}.md`;
     a.click();
     URL.revokeObjectURL(url);
-    message.success('Markdown 已导出');
-  }, [activeId, title, getExportMarkdown]);
+    message.success(t('devtools.reportWriter.messages.markdownExported'));
+  }, [activeId, getExportMarkdown, t, title]);
 
   /** 导出 HTML */
   const handleExportHtml = useCallback(async () => {
     if (!activeId) return;
     const md = await getExportMarkdown();
     const htmlBody = await marked.parse(md);
-    const fullHtml = buildHtmlPage(htmlBody, title || '报告');
+    const locale = i18n.resolvedLanguage ?? i18n.language;
+    const htmlLang = locale.startsWith('en') ? 'en' : 'zh-CN';
+    const defaultFileName = t('devtools.reportWriter.export.defaultFileName');
+    const fullHtml = buildHtmlPage(htmlBody, title || defaultFileName, htmlLang);
     const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${title || '报告'}.html`;
+    a.download = `${title || defaultFileName}.html`;
     a.click();
     URL.revokeObjectURL(url);
-    message.success('HTML 已导出');
-  }, [activeId, title, getExportMarkdown, buildHtmlPage]);
+    message.success(t('devtools.reportWriter.messages.htmlExported'));
+  }, [activeId, buildHtmlPage, getExportMarkdown, i18n.language, i18n.resolvedLanguage, t, title]);
 
   /** 导出 PDF（使用 html2pdf.js） */
   const handleExportPdf = useCallback(async () => {
     if (!activeId) return;
     const md = await getExportMarkdown();
     const htmlBody = await marked.parse(md);
-    const fullHtml = buildHtmlPage(htmlBody, title || '报告');
+    const locale = i18n.resolvedLanguage ?? i18n.language;
+    const htmlLang = locale.startsWith('en') ? 'en' : 'zh-CN';
+    const defaultFileName = t('devtools.reportWriter.export.defaultFileName');
+    const fullHtml = buildHtmlPage(htmlBody, title || defaultFileName, htmlLang);
     // 创建临时容器渲染 HTML
     const container = document.createElement('div');
     container.innerHTML = fullHtml;
@@ -260,26 +272,26 @@ export const ReportLayout: React.FC = () => {
       await html2pdf()
         .set({
           margin: [10, 10, 10, 10],
-          filename: `${title || '报告'}.pdf`,
+          filename: `${title || defaultFileName}.pdf`,
           image: { type: 'jpeg', quality: 0.95 },
           html2canvas: { scale: 2, useCORS: true, logging: false },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         })
         .from(container)
         .save();
-      message.success('PDF 已导出');
+      message.success(t('devtools.reportWriter.messages.pdfExported'));
     } catch {
-      message.error('PDF 导出失败');
+      message.error(t('devtools.reportWriter.messages.pdfExportFailed'));
     } finally {
       document.body.removeChild(container);
     }
-  }, [activeId, title, getExportMarkdown, buildHtmlPage]);
+  }, [activeId, buildHtmlPage, getExportMarkdown, i18n.language, i18n.resolvedLanguage, t, title]);
 
   /** 导出菜单项 */
   const exportMenuItems: MenuProps['items'] = [
-    { key: 'md', icon: <FileMarkdownOutlined />, label: '导出 Markdown', onClick: handleExportMd },
-    { key: 'html', icon: <Html5Outlined />, label: '导出 HTML', onClick: handleExportHtml },
-    { key: 'pdf', icon: <FilePdfOutlined />, label: '导出 PDF', onClick: handleExportPdf },
+    { key: 'md', icon: <FileMarkdownOutlined />, label: t('devtools.reportWriter.export.menu.markdown'), onClick: handleExportMd },
+    { key: 'html', icon: <Html5Outlined />, label: t('devtools.reportWriter.export.menu.html'), onClick: handleExportHtml },
+    { key: 'pdf', icon: <FilePdfOutlined />, label: t('devtools.reportWriter.export.menu.pdf'), onClick: handleExportPdf },
   ];
 
   /** 粘贴事件处理 */
@@ -323,7 +335,8 @@ export const ReportLayout: React.FC = () => {
   /** 格式化时间 */
   const formatTime = (ts: number) => {
     const d = new Date(ts);
-    return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const locale = i18n.resolvedLanguage ?? i18n.language;
+    return `${d.toLocaleDateString(locale)} ${d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   const activeReport = reports.find((r) => r.id === activeId);
@@ -333,14 +346,14 @@ export const ReportLayout: React.FC = () => {
       {/* 左侧报告列表 */}
       <div className="flex flex-col w-52 shrink-0 border-r border-gray-200 bg-gray-50">
         <div className="flex items-center justify-between px-2 py-1.5 border-b border-gray-200">
-          <span className="text-[10px] font-bold text-gray-500 tracking-wide">REPORTS</span>
-          <Tooltip title="新建报告">
+          <span className="text-[10px] font-bold text-gray-500 tracking-wide">{t('devtools.reportWriter.sidebar.title')}</span>
+          <Tooltip title={t('devtools.reportWriter.tooltips.createReport')}>
             <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreate} />
           </Tooltip>
         </div>
         <div className="flex-1 overflow-y-auto py-1">
           {reports.length === 0 ? (
-            <Empty description="暂无报告" image={Empty.PRESENTED_IMAGE_SIMPLE} className="mt-8" />
+            <Empty description={t('devtools.reportWriter.empty.list')} image={Empty.PRESENTED_IMAGE_SIMPLE} className="mt-8" />
           ) : (
             reports.map((r) => {
               const isActive = r.id === activeId;
@@ -359,11 +372,11 @@ export const ReportLayout: React.FC = () => {
                     <div className="text-[10px] text-gray-400 mt-0.5">{formatTime(r.updatedAt)}</div>
                   </div>
                   <Popconfirm
-                    title="确定删除？"
+                    title={t('devtools.reportWriter.confirm.delete')}
                     onConfirm={(e) => { e?.stopPropagation(); handleDelete(r.id); }}
                     onCancel={(e) => e?.stopPropagation()}
-                    okText="确定"
-                    cancelText="取消"
+                    okText={t('common.actions.confirm')}
+                    cancelText={t('common.actions.cancel')}
                   >
                     <Button
                       type="text"
@@ -390,21 +403,21 @@ export const ReportLayout: React.FC = () => {
               <Input
                 value={title}
                 onChange={onTitleChange}
-                placeholder="报告标题"
+                placeholder={t('devtools.reportWriter.fields.titlePlaceholder')}
                 size="small"
                 className="flex-1 max-w-xs font-medium"
                 variant="borderless"
               />
               <div className="flex-1" />
-              {dirty && <span className="text-[10px] text-orange-400">● 未保存</span>}
-              <Tooltip title="保存 (自动保存已启用)">
+              {dirty && <span className="text-[10px] text-orange-400">● {t('devtools.reportWriter.status.unsaved')}</span>}
+              <Tooltip title={t('devtools.reportWriter.tooltips.saveWithAutosave')}>
                 <Button size="small" icon={<SaveOutlined />} onClick={handleSave}>
-                  保存
+                  {t('common.actions.save')}
                 </Button>
               </Tooltip>
               <Dropdown menu={{ items: exportMenuItems }} placement="bottomRight">
                 <Button size="small" icon={<ExportOutlined />}>
-                  导出 ▾
+                  {t('common.actions.export')} ▾
                 </Button>
               </Dropdown>
             </div>
@@ -430,9 +443,9 @@ export const ReportLayout: React.FC = () => {
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
             <FileTextOutlined style={{ fontSize: 48 }} />
-            <span className="text-sm">选择或创建一个报告开始编写</span>
+            <span className="text-sm">{t('devtools.reportWriter.empty.startWriting')}</span>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              新建报告
+              {t('devtools.reportWriter.buttons.createReport')}
             </Button>
           </div>
         )}

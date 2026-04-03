@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Button, Tabs, Tooltip, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   CopyOutlined,
   ArrowUpOutlined,
@@ -41,6 +42,7 @@ function toHexView(data: string): string {
 }
 
 export const WsFrameDetail: React.FC = () => {
+  const { t } = useTranslation();
   const selectedFrameId = useWsStore((s) => s.selectedFrameId);
   const selectedConnectionId = useWsStore((s) => s.selectedConnectionId);
   const frames = useWsStore((s) => s.frames);
@@ -64,7 +66,7 @@ export const WsFrameDetail: React.FC = () => {
   if (!frame) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 text-xs">
-        选择一个帧查看详情
+        {t('devtools.websocket.frameDetail.empty')}
       </div>
     );
   }
@@ -76,12 +78,12 @@ export const WsFrameDetail: React.FC = () => {
   const hasEdited = editedFrameData !== null;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(currentData).then(() => message.success('已复制'));
+    navigator.clipboard.writeText(currentData).then(() => message.success(t('common.feedback.copySuccess')));
   };
 
   const handleSend = () => {
     if (!connection) {
-      message.error('未找到对应的 WebSocket 连接');
+      message.error(t('devtools.websocket.frameDetail.messages.connectionNotFound'));
       return;
     }
     const dataToSend = editedFrameData ?? frame.data;
@@ -133,17 +135,17 @@ export const WsFrameDetail: React.FC = () => {
   const tabItems = [
     {
       key: 'data',
-      label: isJson ? 'JSON' : '数据',
+      label: isJson ? 'JSON' : t('devtools.websocket.frameDetail.tabs.data'),
       children: renderEditableContent(formatted),
     },
     {
       key: 'raw',
-      label: 'Raw',
+      label: t('devtools.websocket.frameDetail.tabs.raw'),
       children: renderEditableContent(currentData),
     },
     {
       key: 'hex',
-      label: 'Hex',
+      label: t('devtools.websocket.frameDetail.tabs.hex'),
       children: (
         <pre className="m-0 h-full overflow-auto bg-gray-50/50 p-3 text-sm font-mono leading-6 text-gray-700 whitespace-pre">
           {hexView}
@@ -163,12 +165,12 @@ export const WsFrameDetail: React.FC = () => {
             <ArrowDownOutlined className="text-red-500" />
           )}
           <span className="text-gray-500">
-            {isSent ? '发送' : '接收'} · {frame.dataType} · opcode:{frame.opcode} · {frame.length}B
-            {hasEdited && <span className="text-orange-500 ml-1">(已编辑)</span>}
+            {isSent ? t('devtools.websocket.frameDetail.labels.sent') : t('devtools.websocket.frameDetail.labels.received')} · {frame.dataType} · opcode:{frame.opcode} · {frame.length}B
+            {hasEdited && <span className="text-orange-500 ml-1">({t('devtools.websocket.frameDetail.labels.edited')})</span>}
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Tooltip title={isEditing ? '退出编辑' : '编辑数据'}>
+          <Tooltip title={isEditing ? t('devtools.websocket.frameDetail.tooltips.exitEdit') : t('devtools.websocket.frameDetail.tooltips.edit')}>
             <Button
               type={isEditing ? 'primary' : 'text'}
               icon={<EditOutlined />}
@@ -176,21 +178,21 @@ export const WsFrameDetail: React.FC = () => {
             />
           </Tooltip>
           {hasEdited && (
-            <Tooltip title="重置编辑">
+            <Tooltip title={t('devtools.websocket.frameDetail.tooltips.resetEdit')}>
               <Button type="text" icon={<UndoOutlined />} onClick={handleReset} />
             </Tooltip>
           )}
-          <Tooltip title="复制数据">
+          <Tooltip title={t('devtools.websocket.frameDetail.tooltips.copyData')}>
             <Button type="text" icon={<CopyOutlined />} onClick={handleCopy} />
           </Tooltip>
-          <Tooltip title="发送/重放">
+          <Tooltip title={t('devtools.websocket.frameDetail.tooltips.replay')}>
             <Button
               type="primary"
               icon={<SendOutlined />}
               onClick={handleSend}
               disabled={!connection}
             >
-              发送
+              {t('devtools.websocket.frameDetail.buttons.send')}
             </Button>
           </Tooltip>
         </div>

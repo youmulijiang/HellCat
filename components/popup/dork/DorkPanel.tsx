@@ -5,6 +5,7 @@ import {
   CopyOutlined,
   ClearOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { browser } from 'wxt/browser';
 import {
   DORK_ENGINES,
@@ -31,6 +32,7 @@ function createEmptyValues(engine: DorkEngine): OperatorValues {
 }
 
 export const DorkPanel: React.FC = () => {
+  const { t } = useTranslation();
   const [engineId, setEngineId] = useState(DORK_ENGINES[0].id);
   const [operatorValues, setOperatorValues] = useState<OperatorValues>(
     () => createEmptyValues(DORK_ENGINES[0]),
@@ -78,12 +80,15 @@ export const DorkPanel: React.FC = () => {
   /** 复制 */
   const handleCopy = () => {
     if (!query) return;
-    navigator.clipboard.writeText(query).then(() => message.success('已复制'));
+    navigator.clipboard.writeText(query).then(() => message.success(t('common.feedback.copySuccess')));
   };
 
   /** 打开搜索 */
   const handleSearch = () => {
-    if (!query) { message.warning('请至少填写一项'); return; }
+    if (!query) {
+      message.warning(t('popup.dork.messages.inputRequired'));
+      return;
+    }
     const url = buildSearchUrl(engine, query);
     browser.tabs.create({ url });
   };
@@ -109,14 +114,14 @@ export const DorkPanel: React.FC = () => {
           className="w-28"
         />
         <div className="flex items-center gap-0.5">
-          <Tooltip title="清空">
+          <Tooltip title={t('common.actions.clear')}>
             <Button type="text" size="small" icon={<ClearOutlined />} onClick={handleClear} />
           </Tooltip>
-          <Tooltip title="复制语法">
+          <Tooltip title={t('popup.dork.tooltips.copyQuery')}>
             <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopy} disabled={!query} />
           </Tooltip>
           <Button type="primary" size="small" icon={<SearchOutlined />} onClick={handleSearch} disabled={!query}>
-            搜索
+            {t('common.actions.search')}
           </Button>
         </div>
       </div>
@@ -130,7 +135,7 @@ export const DorkPanel: React.FC = () => {
             <div key={op.keyword} className="flex items-center gap-1.5">
               {/* 取反开关 */}
               {negatable ? (
-                <Tooltip title={entry?.negated ? '排除 (NOT)' : '包含'}>
+                <Tooltip title={entry?.negated ? t('popup.dork.tooltips.exclude') : t('popup.dork.tooltips.include')}>
                   <Switch
                     size="small"
                     checked={entry?.negated}
@@ -145,12 +150,12 @@ export const DorkPanel: React.FC = () => {
               )}
               {/* 标签 */}
               <span className="text-xs text-gray-500 w-20 text-right flex-shrink-0 truncate" title={`${op.keyword}:`}>
-                {op.label}
+                {t(op.labelKey)}
               </span>
               {/* 输入框 */}
               <Input
                 size="small"
-                placeholder={op.placeholder}
+                placeholder={t(op.placeholderKey)}
                 value={entry?.value ?? ''}
                 onChange={(e) => updateValue(op.keyword, e.target.value)}
                 className="flex-1"
@@ -162,10 +167,10 @@ export const DorkPanel: React.FC = () => {
         {/* 自由文本 */}
         <div className="flex items-center gap-1.5 pt-1 border-t border-gray-100">
           <span className="w-[44px] flex-shrink-0" />
-          <span className="text-xs text-gray-500 w-20 text-right flex-shrink-0">关键词</span>
+          <span className="text-xs text-gray-500 w-20 text-right flex-shrink-0">{t('popup.dork.labels.freeText')}</span>
           <Input
             size="small"
-            placeholder="额外关键词（直接追加）"
+            placeholder={t('popup.dork.placeholders.freeText')}
             value={freeText}
             onChange={(e) => setFreeText(e.target.value)}
             className="flex-1"
@@ -176,7 +181,7 @@ export const DorkPanel: React.FC = () => {
       {/* 底部预览 */}
       <div className="px-3 py-2 border-t border-gray-100 bg-gray-50/50">
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[10px] text-gray-400">生成的 Dork 语法：</span>
+          <span className="text-[10px] text-gray-400">{t('popup.dork.labels.generatedQuery')}</span>
           {query && (
             <Button
               type="link"
@@ -185,16 +190,16 @@ export const DorkPanel: React.FC = () => {
               onClick={handleSearch}
               className="text-[10px] p-0 h-auto leading-none"
             >
-              搜索
+              {t('common.actions.search')}
             </Button>
           )}
         </div>
         <div
           className={`text-xs font-mono bg-white border border-gray-200 rounded px-2 py-1 min-h-[28px] break-all text-gray-700 ${query ? 'cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors select-all' : ''}`}
           onClick={query ? handleSearch : undefined}
-          title={query ? '点击搜索' : undefined}
+          title={query ? t('popup.dork.tooltips.clickToSearch') : undefined}
         >
-          {query || <span className="text-gray-300 italic">请填写上方字段</span>}
+          {query || <span className="text-gray-300 italic">{t('popup.dork.emptyPreview')}</span>}
         </div>
       </div>
     </div>

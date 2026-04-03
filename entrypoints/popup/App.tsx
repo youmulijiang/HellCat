@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { ConfigProvider, Spin, Tabs } from 'antd';
-import { HomeOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import { getAntdLocale } from '@/lib/i18n';
 
 const TAB_STORAGE_KEY = 'popup_active_tab';
 
@@ -40,59 +41,71 @@ const LazyFallback = (
   </div>
 );
 
-/** Popup 选项卡定义 */
-const POPUP_TABS = [
-  {
-    key: 'home',
-    label: "首页",
-    children: <Suspense fallback={LazyFallback}><HomePanel /></Suspense>,
-  },
-  {
-    key: 'info-collect',
-    label: '信息收集',
-    children: <Suspense fallback={LazyFallback}><InfoCollectPanel /></Suspense>,
-  },
-  {
-    key: 'vue-crack',
-    label: 'VueCrack',
-    children: <Suspense fallback={LazyFallback}><VueCrackPanel /></Suspense>,
-  },
-  {
-    key: 'proxy',
-    label: '代理',
-    children: <Suspense fallback={LazyFallback}><ProxyPanel /></Suspense>,
-  },
-  {
-    key: 'inject',
-    label: '注入',
-    children: <Suspense fallback={LazyFallback}><InjectPanel /></Suspense>,
-  },
-  {
-    key: 'cookie',
-    label: 'Cookie操作',
-    children: <Suspense fallback={LazyFallback}><CookiePanel /></Suspense>,
-  },
-  {
-    key: 'dork',
-    label: 'Dork',
-    children: <Suspense fallback={LazyFallback}><DorkPanel /></Suspense>,
-  },
-  {
-    key: 'url-opener',
-    label: 'URL多开',
-    children: <Suspense fallback={LazyFallback}><UrlOpenerPanel /></Suspense>,
-  },
-  {
-    key: 'note',
-    label: '笔记',
-    children: <Suspense fallback={LazyFallback}><NotePanel /></Suspense>,
-  },
-];
+const POPUP_TAB_KEYS = [
+  'home',
+  'info-collect',
+  'vue-crack',
+  'proxy',
+  'inject',
+  'cookie',
+  'dork',
+  'url-opener',
+  'note',
+] as const;
 
-const VALID_TAB_KEYS = new Set(POPUP_TABS.map((t) => t.key));
+const VALID_TAB_KEYS = new Set<string>(POPUP_TAB_KEYS);
 
 const App: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [activeKey, setActiveKey] = useState('home');
+
+  const popupTabs = [
+    {
+      key: 'home',
+      label: t('popup.tabs.home'),
+      children: <Suspense fallback={LazyFallback}><HomePanel /></Suspense>,
+    },
+    {
+      key: 'info-collect',
+      label: t('popup.tabs.infoCollect'),
+      children: <Suspense fallback={LazyFallback}><InfoCollectPanel /></Suspense>,
+    },
+    {
+      key: 'vue-crack',
+      label: t('popup.tabs.vueCrack'),
+      children: <Suspense fallback={LazyFallback}><VueCrackPanel /></Suspense>,
+    },
+    {
+      key: 'proxy',
+      label: t('popup.tabs.proxy'),
+      children: <Suspense fallback={LazyFallback}><ProxyPanel /></Suspense>,
+    },
+    {
+      key: 'inject',
+      label: t('popup.tabs.inject'),
+      children: <Suspense fallback={LazyFallback}><InjectPanel /></Suspense>,
+    },
+    {
+      key: 'cookie',
+      label: t('popup.tabs.cookie'),
+      children: <Suspense fallback={LazyFallback}><CookiePanel /></Suspense>,
+    },
+    {
+      key: 'dork',
+      label: t('popup.tabs.dork'),
+      children: <Suspense fallback={LazyFallback}><DorkPanel /></Suspense>,
+    },
+    {
+      key: 'url-opener',
+      label: t('popup.tabs.urlOpener'),
+      children: <Suspense fallback={LazyFallback}><UrlOpenerPanel /></Suspense>,
+    },
+    {
+      key: 'note',
+      label: t('popup.tabs.note'),
+      children: <Suspense fallback={LazyFallback}><NotePanel /></Suspense>,
+    },
+  ];
 
   // 初始化时从 localStorage 读取上次的选项卡
   useEffect(() => {
@@ -109,6 +122,7 @@ const App: React.FC = () => {
 
   return (
     <ConfigProvider
+      locale={getAntdLocale(i18n.resolvedLanguage)}
       theme={{
         token: {
           fontSize: 14,
@@ -129,7 +143,7 @@ const App: React.FC = () => {
           onChange={handleTabChange}
           size="small"
           className="flex h-full min-h-0 flex-col px-2 [&_.ant-tabs-content]:h-full [&_.ant-tabs-content-holder]:min-h-0 [&_.ant-tabs-tabpane]:h-full"
-          items={POPUP_TABS}
+          items={popupTabs}
           tabBarStyle={{ marginBottom: 0 }}
         />
       </div>

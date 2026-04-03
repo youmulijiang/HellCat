@@ -1,11 +1,12 @@
 import React from 'react';
 import { Badge, Empty, Tooltip } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { useWsStore } from '@/stores/useWsStore';
 import type { WsConnection } from '@/types/websocket';
 
 /** 格式化时间 */
-function formatTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString('zh-CN', { hour12: false });
+function formatTime(ts: number, locale: string): string {
+  return new Date(ts).toLocaleTimeString(locale, { hour12: false });
 }
 
 /** 从 URL 提取简短显示名 */
@@ -32,7 +33,21 @@ function statusColor(status: WsConnection['status']): string {
   }
 }
 
+function getStatusLabel(t: ReturnType<typeof useTranslation>['t'], status: WsConnection['status']): string {
+  switch (status) {
+    case 'connecting':
+      return t('devtools.websocket.connectionList.status.connecting');
+    case 'open':
+      return t('devtools.websocket.connectionList.status.open');
+    case 'closed':
+      return t('devtools.websocket.connectionList.status.closed');
+    case 'error':
+      return t('devtools.websocket.connectionList.status.error');
+  }
+}
+
 export const WsConnectionList: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const connections = useWsStore((s) => s.connections);
   const selectedConnectionId = useWsStore((s) => s.selectedConnectionId);
   const selectConnection = useWsStore((s) => s.selectConnection);
@@ -40,7 +55,7 @@ export const WsConnectionList: React.FC = () => {
   if (connections.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Empty description="暂无 WebSocket 连接" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Empty description={t('devtools.websocket.connectionList.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
       </div>
     );
   }
@@ -70,7 +85,7 @@ export const WsConnectionList: React.FC = () => {
                 </div>
               </Tooltip>
               <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-400">
-                <span>{formatTime(conn.createdAt)}</span>
+                <span>{formatTime(conn.createdAt, i18n.resolvedLanguage ?? i18n.language)}</span>
                 <span>↑{conn.sentCount}</span>
                 <span>↓{conn.receivedCount}</span>
               </div>
@@ -84,7 +99,7 @@ export const WsConnectionList: React.FC = () => {
                 backgroundColor: `${statusColor(conn.status)}15`,
               }}
             >
-              {conn.status}
+              {getStatusLabel(t, conn.status)}
             </span>
           </div>
         );

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   VueDetectionResult,
   VueRouterAnalysisResult,
@@ -15,6 +16,7 @@ export interface VueCrackState {
 }
 
 export function useVueCrack() {
+  const { t } = useTranslation();
   const [state, setState] = useState<VueCrackState>({
     status: 'idle',
     detection: null,
@@ -56,7 +58,7 @@ export function useVueCrack() {
     try {
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
       if (!tab?.id) {
-        setState((s) => ({ ...s, status: 'error', error: '无法获取当前标签页' }));
+        setState((s) => ({ ...s, status: 'error', error: t('popup.vueCrack.errors.noActiveTab') }));
         return;
       }
       await browser.tabs.sendMessage(tab.id, { action: 'detectVue' });
@@ -64,10 +66,10 @@ export function useVueCrack() {
       setState((s) => ({
         ...s,
         status: 'error',
-        error: '无法连接到页面，请刷新后重试',
+        error: t('popup.vueCrack.errors.pageConnectionFailed'),
       }));
     }
-  }, []);
+  }, [t]);
 
   /** 推断出的 base path（routerBase 优先，其次 pageAnalysis） */
   const inferredBasePath =

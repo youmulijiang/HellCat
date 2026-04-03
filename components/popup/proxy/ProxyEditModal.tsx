@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Select, InputNumber } from 'antd';
+import { useTranslation } from 'react-i18next';
 import type { ProxyScheme } from '@/types/proxy';
 import { DEFAULT_PORTS } from '@/types/proxy';
 
@@ -24,6 +25,7 @@ interface ProxyEditModalProps {
 export const ProxyEditModal: React.FC<ProxyEditModalProps> = ({
   open, editingProfile, onOk, onCancel,
 }) => {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export const ProxyEditModal: React.FC<ProxyEditModalProps> = ({
 
   return (
     <Modal
-      title={editingProfile ? '编辑代理' : '添加代理'}
+      title={editingProfile ? t('popup.proxy.modal.editTitle') : t('popup.proxy.modal.addTitle')}
       open={open}
       onOk={() => form.validateFields().then(values => {
         const { bypassText, ...rest } = values;
@@ -61,14 +63,16 @@ export const ProxyEditModal: React.FC<ProxyEditModalProps> = ({
       })}
       onCancel={onCancel}
       width={360}
+      okText={t('common.actions.save')}
+      cancelText={t('common.actions.cancel')}
       destroyOnClose
     >
       <Form form={form} layout="vertical" size="small" className="mt-3">
-        <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
-          <Input placeholder="My Proxy" />
+        <Form.Item name="name" label={t('common.fields.name')} rules={[{ required: true, message: t('popup.proxy.validation.nameRequired') }]}>
+          <Input placeholder={t('popup.proxy.modal.namePlaceholder')} />
         </Form.Item>
         <div className="flex gap-2">
-          <Form.Item name="scheme" label="协议" className="w-28"
+          <Form.Item name="scheme" label={t('common.fields.protocol')} className="w-28"
             rules={[{ required: true }]}>
             <Select onChange={handleSchemeChange}
               options={[
@@ -79,27 +83,27 @@ export const ProxyEditModal: React.FC<ProxyEditModalProps> = ({
               ]}
             />
           </Form.Item>
-          <Form.Item name="host" label="主机" className="flex-1"
-            rules={[{ required: true, message: '请输入主机地址' }]}>
+          <Form.Item name="host" label={t('common.fields.host')} className="flex-1"
+            rules={[{ required: true, message: t('popup.proxy.validation.hostRequired') }]}> 
             <Input placeholder="127.0.0.1" />
           </Form.Item>
-          <Form.Item name="port" label="端口" className="w-20"
-            rules={[{ required: true, message: '端口' }]}>
+          <Form.Item name="port" label={t('common.fields.port')} className="w-20"
+            rules={[{ required: true, message: t('popup.proxy.validation.portRequired') }]}> 
             <InputNumber min={1} max={65535} className="w-full" />
           </Form.Item>
         </div>
         <div className="flex gap-2">
-          <Form.Item name="username" label="用户名（可选）" className="flex-1">
-            <Input placeholder="可选" />
+          <Form.Item name="username" label={t('popup.proxy.modal.usernameOptional')} className="flex-1">
+            <Input placeholder={t('popup.proxy.modal.optionalPlaceholder')} />
           </Form.Item>
-          <Form.Item name="password" label="密码（可选）" className="flex-1">
-            <Input.Password placeholder="可选" />
+          <Form.Item name="password" label={t('popup.proxy.modal.passwordOptional')} className="flex-1">
+            <Input.Password placeholder={t('popup.proxy.modal.optionalPlaceholder')} />
           </Form.Item>
         </div>
-        <Form.Item name="bypassText" label="绕过列表（可选）">
+        <Form.Item name="bypassText" label={t('popup.proxy.modal.bypassListOptional')}>
           <Input.TextArea
             rows={4}
-            placeholder={"每行一条规则，支持通配符，例如：\nlocalhost\n127.0.0.1\n*.example.com\n10.*"}
+            placeholder={t('popup.proxy.modal.bypassPlaceholder')}
             className="text-xs"
           />
         </Form.Item>

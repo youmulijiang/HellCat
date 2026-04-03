@@ -14,10 +14,10 @@
 export interface DorkOperator {
   /** 操作符关键字，如 site / inurl */
   keyword: string;
-  /** 中文描述（用于 UI 展示） */
-  label: string;
-  /** 占位提示 */
-  placeholder: string;
+  /** 文案 key（用于 UI 展示） */
+  labelKey: string;
+  /** 占位提示 key */
+  placeholderKey: string;
   /** 值是否需要用引号包裹，默认 false */
   quoted?: boolean;
   /** 该操作符是否支持取反（NOT / -），默认 true */
@@ -45,16 +45,16 @@ const googleEngine: DorkEngine = {
   name: 'Google',
   searchUrl: 'https://www.google.com/search?q={query}',
   operators: [
-    { keyword: 'site', label: '站点', placeholder: 'example.com' },
-    { keyword: 'inurl', label: 'URL中包含', placeholder: 'admin' },
-    { keyword: 'intitle', label: '标题包含', placeholder: 'login', quoted: true },
-    { keyword: 'intext', label: '正文包含', placeholder: '密码', quoted: true },
-    { keyword: 'filetype', label: '文件类型', placeholder: 'pdf' },
-    { keyword: 'ext', label: '扩展名', placeholder: 'sql' },
-    { keyword: 'cache', label: '缓存页面', placeholder: 'example.com' },
-    { keyword: 'link', label: '链接到', placeholder: 'example.com' },
-    { keyword: 'related', label: '相关站点', placeholder: 'example.com' },
-    { keyword: 'info', label: '站点信息', placeholder: 'example.com' },
+    { keyword: 'site', labelKey: 'popup.dork.operators.google.site.label', placeholderKey: 'popup.dork.operators.google.site.placeholder' },
+    { keyword: 'inurl', labelKey: 'popup.dork.operators.google.inurl.label', placeholderKey: 'popup.dork.operators.google.inurl.placeholder' },
+    { keyword: 'intitle', labelKey: 'popup.dork.operators.google.intitle.label', placeholderKey: 'popup.dork.operators.google.intitle.placeholder', quoted: true },
+    { keyword: 'intext', labelKey: 'popup.dork.operators.google.intext.label', placeholderKey: 'popup.dork.operators.google.intext.placeholder', quoted: true },
+    { keyword: 'filetype', labelKey: 'popup.dork.operators.google.filetype.label', placeholderKey: 'popup.dork.operators.google.filetype.placeholder' },
+    { keyword: 'ext', labelKey: 'popup.dork.operators.google.ext.label', placeholderKey: 'popup.dork.operators.google.ext.placeholder' },
+    { keyword: 'cache', labelKey: 'popup.dork.operators.google.cache.label', placeholderKey: 'popup.dork.operators.google.cache.placeholder' },
+    { keyword: 'link', labelKey: 'popup.dork.operators.google.link.label', placeholderKey: 'popup.dork.operators.google.link.placeholder' },
+    { keyword: 'related', labelKey: 'popup.dork.operators.google.related.label', placeholderKey: 'popup.dork.operators.google.related.placeholder' },
+    { keyword: 'info', labelKey: 'popup.dork.operators.google.info.label', placeholderKey: 'popup.dork.operators.google.info.placeholder' },
   ],
 };
 
@@ -63,14 +63,14 @@ const githubEngine: DorkEngine = {
   name: 'GitHub',
   searchUrl: 'https://github.com/search?q={query}&type=code',
   operators: [
-    { keyword: 'org', label: '组织', placeholder: 'microsoft' },
-    { keyword: 'user', label: '用户', placeholder: 'torvalds' },
-    { keyword: 'repo', label: '仓库', placeholder: 'owner/repo' },
-    { keyword: 'path', label: '文件路径', placeholder: 'src/' },
-    { keyword: 'filename', label: '文件名', placeholder: '.env' },
-    { keyword: 'extension', label: '扩展名', placeholder: 'py' },
-    { keyword: 'language', label: '语言', placeholder: 'python' },
-    { keyword: 'in', label: '搜索范围', placeholder: 'file,path' },
+    { keyword: 'org', labelKey: 'popup.dork.operators.github.org.label', placeholderKey: 'popup.dork.operators.github.org.placeholder' },
+    { keyword: 'user', labelKey: 'popup.dork.operators.github.user.label', placeholderKey: 'popup.dork.operators.github.user.placeholder' },
+    { keyword: 'repo', labelKey: 'popup.dork.operators.github.repo.label', placeholderKey: 'popup.dork.operators.github.repo.placeholder' },
+    { keyword: 'path', labelKey: 'popup.dork.operators.github.path.label', placeholderKey: 'popup.dork.operators.github.path.placeholder' },
+    { keyword: 'filename', labelKey: 'popup.dork.operators.github.filename.label', placeholderKey: 'popup.dork.operators.github.filename.placeholder' },
+    { keyword: 'extension', labelKey: 'popup.dork.operators.github.extension.label', placeholderKey: 'popup.dork.operators.github.extension.placeholder' },
+    { keyword: 'language', labelKey: 'popup.dork.operators.github.language.label', placeholderKey: 'popup.dork.operators.github.language.placeholder' },
+    { keyword: 'in', labelKey: 'popup.dork.operators.github.in.label', placeholderKey: 'popup.dork.operators.github.in.placeholder' },
   ],
 };
 

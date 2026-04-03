@@ -5,11 +5,13 @@ import {
   PlayCircleOutlined,
   CameraOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { MultiOpenTab } from './MultiOpenTab';
 import { SlideshowTab } from './SlideshowTab';
 import { ScreenshotTab } from './ScreenshotTab';
 
 export const UrlOpenerPanel: React.FC = () => {
+  const { t } = useTranslation();
   const [activeKey, setActiveKey] = useState(() => localStorage.getItem('popup_urlopener_subtab') || 'multi-open');
 
   return (
@@ -23,7 +25,7 @@ export const UrlOpenerPanel: React.FC = () => {
             key: 'multi-open',
             label: (
               <span className="flex items-center gap-1.5 text-sm">
-                <AppstoreOutlined /> 多开
+                <AppstoreOutlined /> {t('popup.urlOpener.tabs.multiOpen')}
               </span>
             ),
             children: <MultiOpenTab />,
@@ -32,7 +34,7 @@ export const UrlOpenerPanel: React.FC = () => {
             key: 'slideshow',
             label: (
               <span className="flex items-center gap-1.5 text-sm">
-                <PlayCircleOutlined /> 幻灯片
+                <PlayCircleOutlined /> {t('popup.urlOpener.tabs.slideshow')}
               </span>
             ),
             children: <SlideshowTab />,
@@ -41,7 +43,7 @@ export const UrlOpenerPanel: React.FC = () => {
             key: 'screenshot',
             label: (
               <span className="flex items-center gap-1.5 text-sm">
-                <CameraOutlined /> 截图
+                <CameraOutlined /> {t('popup.urlOpener.tabs.screenshot')}
               </span>
             ),
             children: <ScreenshotTab />,

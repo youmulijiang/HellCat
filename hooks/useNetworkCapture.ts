@@ -7,6 +7,8 @@ import type {
   DevToolsToBackgroundMessage,
 } from '@/types/messaging';
 
+type RuntimePort = ReturnType<typeof browser.runtime.connect>;
+
 /**
  * HAR Entry 类型定义（简化版）
  * 对应 browser.devtools.network.onRequestFinished 回调参数
@@ -114,7 +116,7 @@ export function useNetworkCapture() {
     updatePacketStatus,
   } = usePacketStore();
   const isCapturingRef = useRef(isCapturing);
-  const portRef = useRef<browser.runtime.Port | null>(null);
+  const portRef = useRef<RuntimePort | null>(null);
 
   // 同步 ref 以避免闭包过期
   useEffect(() => {
@@ -158,7 +160,7 @@ export function useNetworkCapture() {
 
   // 建立与 background 的长连接
   useEffect(() => {
-    if (typeof chrome === 'undefined' || !browser.runtime?.connect) return;
+    if (typeof browser === 'undefined' || !browser.runtime?.connect) return;
 
     const port = browser.runtime.connect({ name: 'hellcat-devtools' });
     portRef.current = port;

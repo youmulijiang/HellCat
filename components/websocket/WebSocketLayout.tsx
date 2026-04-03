@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { WsToolbar } from './WsToolbar';
 import { WsConnectionList } from './WsConnectionList';
 import { WsFrameList } from './WsFrameList';
@@ -13,6 +14,7 @@ const MIN_PANEL_WIDTH = 120;
  * 支持拖拽调整面板宽度
  */
 export const WebSocketLayout: React.FC = () => {
+  const { t } = useTranslation();
   const [connListWidth, setConnListWidth] = useState(200);
   const [frameListRatio, setFrameListRatio] = useState(0.55);
   const [dragging, setDragging] = useState<'conn' | 'frame' | null>(null);
@@ -68,7 +70,7 @@ export const WebSocketLayout: React.FC = () => {
           style={{ width: connListWidth }}
         >
           <div className="px-2 py-1 text-[10px] text-gray-400 font-medium bg-gray-50/80 border-b border-gray-100">
-            连接列表
+            {t('devtools.websocket.layout.connections')}
           </div>
           <div className="h-[calc(100%-24px)] overflow-hidden">
             <WsConnectionList />
@@ -91,7 +93,7 @@ export const WebSocketLayout: React.FC = () => {
             style={{ width: `${frameListRatio * 100}%` }}
           >
             <div className="px-2 py-1 text-[10px] text-gray-400 font-medium bg-gray-50/80 border-b border-gray-100">
-              消息帧
+              {t('devtools.websocket.layout.frames')}
             </div>
             <div className="h-[calc(100%-24px)] overflow-hidden">
               <WsFrameList />
@@ -109,7 +111,7 @@ export const WebSocketLayout: React.FC = () => {
           {/* 帧详情 */}
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="px-2 py-1 text-[10px] text-gray-400 font-medium bg-gray-50/80 border-b border-gray-100">
-              帧详情
+              {t('devtools.websocket.layout.detail')}
             </div>
             <div className="h-[calc(100%-24px)] overflow-hidden">
               <WsFrameDetail />

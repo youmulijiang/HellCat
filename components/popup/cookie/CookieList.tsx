@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tag, Tooltip, Empty, Spin } from 'antd';
 import { DeleteOutlined, EditOutlined, CopyOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { CookieItem } from '@/hooks/useCookies';
 
 interface CookieListProps {
@@ -18,16 +19,18 @@ export const CookieList: React.FC<CookieListProps> = ({
   onDelete,
   onCopyValue,
 }) => {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Spin size="small" />
+        <Spin size="small" tip={t('common.status.loading')} />
       </div>
     );
   }
 
   if (cookies.length === 0) {
-    return <Empty description="当前页面没有Cookie" className="py-6" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+    return <Empty description={t('popup.cookie.empty')} className="py-6" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
   }
 
   return (
@@ -52,7 +55,7 @@ export const CookieList: React.FC<CookieListProps> = ({
             </Tooltip>
           </div>
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Tooltip title="复制值">
+            <Tooltip title={t('popup.cookie.tooltips.copyValue')}>
               <button
                 onClick={() => onCopyValue(cookie)}
                 className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors cursor-pointer border-none bg-transparent"
@@ -60,7 +63,7 @@ export const CookieList: React.FC<CookieListProps> = ({
                 <CopyOutlined style={{ fontSize: 12 }} />
               </button>
             </Tooltip>
-            <Tooltip title="编辑">
+            <Tooltip title={t('common.actions.edit')}>
               <button
                 onClick={() => onEdit(cookie)}
                 className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors cursor-pointer border-none bg-transparent"
@@ -68,7 +71,7 @@ export const CookieList: React.FC<CookieListProps> = ({
                 <EditOutlined style={{ fontSize: 12 }} />
               </button>
             </Tooltip>
-            <Tooltip title="删除">
+            <Tooltip title={t('common.actions.delete')}>
               <button
                 onClick={() => onDelete(cookie)}
                 className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors cursor-pointer border-none bg-transparent"

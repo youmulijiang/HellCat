@@ -1,6 +1,8 @@
 import React, { lazy, Suspense, useState } from 'react';
 import { ConfigProvider, Spin, theme } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { SideNav } from '@/components/layout/SideNav';
+import { getAntdLocale } from '@/lib/i18n';
 
 /* ── 懒加载各功能模块（命名导出需要包装为 default） ── */
 const PacketReplayLayout = lazy(() =>
@@ -34,20 +36,20 @@ const ReportLayout = lazy(() =>
   import('@/components/report/ReportLayout').then((m) => ({ default: m.ReportLayout })),
 );
 
-/** 懒加载 fallback */
-const LazyFallback = (
-  <div className="flex items-center justify-center h-full">
-    <Spin size="small" tip="加载中..." />
-  </div>
-);
-
 /**
  * DevTools 面板入口组件
  * 左侧导航栏 + 右侧功能区
  */
 const App: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [activeModule, setActiveModule] = useState('packet-replay');
   const [sideCollapsed, setSideCollapsed] = useState(false);
+
+  const lazyFallback = (
+    <div className="flex items-center justify-center h-full">
+      <Spin size="small" tip={t('common.status.loading')} />
+    </div>
+  );
 
   /** 根据当前模块渲染对应功能区 */
   const renderModuleContent = () => {
@@ -75,7 +77,7 @@ const App: React.FC = () => {
       default:
         return (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-            模块开发中...
+            {t('common.status.moduleInDevelopment')}
           </div>
         );
     }
@@ -83,6 +85,7 @@ const App: React.FC = () => {
 
   return (
     <ConfigProvider
+      locale={getAntdLocale(i18n.resolvedLanguage)}
       theme={{
         algorithm: theme.defaultAlgorithm,
         token: {
@@ -109,7 +112,7 @@ const App: React.FC = () => {
 
         {/* 右侧功能区 */}
         <div className="flex-1 min-w-0 overflow-hidden" style={{ marginLeft: 13 }}>
-          <Suspense fallback={LazyFallback}>
+          <Suspense fallback={lazyFallback}>
             {renderModuleContent()}
           </Suspense>
         </div>

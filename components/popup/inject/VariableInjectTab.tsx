@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Input, Tooltip, Empty, Popconfirm, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -18,31 +19,40 @@ interface Props {
 export const VariableInjectTab: React.FC<Props> = ({
   variables, onAdd, onUpdate, onRemove, onFillVariables,
 }) => {
+  const { t } = useTranslation();
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newKey.trim()) {
-      message.warning('请输入变量名');
+      message.warning(t('popup.inject.variable.messages.keyRequired'));
       return;
     }
     if (variables.some(v => v.key === newKey.trim())) {
-      message.warning('变量名已存在');
+      message.warning(t('popup.inject.variable.messages.keyExists'));
       return;
     }
-    onAdd(newKey.trim(), newValue);
-    setNewKey('');
-    setNewValue('');
-    message.success('已添加');
+    try {
+      await onAdd(newKey.trim(), newValue);
+      setNewKey('');
+      setNewValue('');
+      message.success(t('popup.inject.variable.messages.added'));
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : t('common.feedback.saveFailed'));
+    }
   };
 
   const handleFill = async () => {
     if (variables.length === 0) {
-      message.warning('请先添加变量');
+      message.warning(t('popup.inject.variable.messages.inputFirst'));
       return;
     }
-    await onFillVariables();
-    message.success('变量填充完成');
+    try {
+      await onFillVariables();
+      message.success(t('popup.inject.variable.messages.filled'));
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : t('common.feedback.saveFailed'));
+    }
   };
 
   return (
@@ -50,25 +60,25 @@ export const VariableInjectTab: React.FC<Props> = ({
       {/* 添加新变量 */}
       <div className="flex items-center gap-2">
         <Input
-          placeholder="变量名"
+          placeholder={t('popup.inject.variable.keyPlaceholder')}
           value={newKey}
           onChange={e => setNewKey(e.target.value)}
           className="flex-1 text-sm"
         />
         <Input
-          placeholder="值"
+          placeholder={t('popup.inject.variable.valuePlaceholder')}
           value={newValue}
           onChange={e => setNewValue(e.target.value)}
           className="flex-1 text-sm"
         />
-        <Tooltip title="添加变量">
-          <Button icon={<PlusOutlined />} onClick={handleAdd} />
+        <Tooltip title={t('popup.inject.variable.tooltips.add')}>
+          <Button icon={<PlusOutlined />} onClick={() => void handleAdd()} />
         </Tooltip>
       </div>
 
       {/* 变量列表 */}
       {variables.length === 0 ? (
-        <Empty description="暂无变量" image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-4" />
+        <Empty description={t('popup.inject.variable.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-4" />
       ) : (
         <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto">
           {variables.map(v => (
@@ -89,7 +99,12 @@ export const VariableInjectTab: React.FC<Props> = ({
                 onChange={e => onUpdate(v.id, { value: e.target.value })}
                 className="flex-1 text-sm"
               />
-              <Popconfirm title="确定删除？" onConfirm={() => onRemove(v.id)} okText="确定" cancelText="取消">
+              <Popconfirm
+                title={t('popup.inject.variable.confirmDelete')}
+                onConfirm={() => onRemove(v.id)}
+                okText={t('common.actions.confirm')}
+                cancelText={t('common.actions.cancel')}
+              >
                 <Button type="text" danger icon={<DeleteOutlined />} />
               </Popconfirm>
             </div>
@@ -98,22 +113,25 @@ export const VariableInjectTab: React.FC<Props> = ({
       )}
 
       {/* 注入按钮 */}
-      <Tooltip title="将页面表单中的 {{变量名}} 替换为对应的值">
+      <Tooltip title={t('popup.inject.variable.tooltips.fill')}>
         <Button
           type="primary"
           icon={<ThunderboltOutlined />}
           onClick={handleFill}
           block
         >
-          变量填充注入
+          {t('popup.inject.variable.fillButton')}
         </Button>
       </Tooltip>
 
       {/* 说明 */}
       <div className="px-1 text-xs leading-5 text-gray-400">
-        <p>• 在表单中使用 <code className="rounded bg-gray-100 px-1">{'{{变量名}}'}</code> 作为占位符</p>
-        <p>• 点击"变量填充注入"后，页面表单中匹配的占位符将被替换为对应的值</p>
-        <p>• 支持 input、textarea、contenteditable 元素</p>
+        <p>
+          • {t('popup.inject.variable.help.placeholderUsage')}
+          <code className="ml-1 rounded bg-gray-100 px-1">{'{{'}{t('popup.inject.variable.help.examplePlaceholder')}{'}}'}</code>
+        </p>
+        <p>• {t('popup.inject.variable.help.replaceDescription')}</p>
+        <p>• {t('popup.inject.variable.help.supportedElements')}</p>
       </div>
     </div>
   );

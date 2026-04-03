@@ -5,10 +5,16 @@
 export interface PresetScript {
   /** 唯一标识 */
   key: string;
-  /** 显示名称 */
-  label: string;
-  /** 简短描述 */
-  description: string;
+  /** 国际化显示名称 key */
+  labelKey:
+    | 'popup.inject.presets.hookCryptoJs.label'
+    | 'popup.inject.presets.hookJsEncrypt.label'
+    | 'popup.inject.presets.forceF12.label';
+  /** 国际化简短描述 key */
+  descriptionKey:
+    | 'popup.inject.presets.hookCryptoJs.description'
+    | 'popup.inject.presets.hookJsEncrypt.description'
+    | 'popup.inject.presets.forceF12.description';
   /** 注入的 JS 代码 */
   code: string;
 }
@@ -278,20 +284,20 @@ const FORCE_ENABLE_F12 = `(function () {
 export const PRESET_SCRIPTS: PresetScript[] = [
   {
     key: 'hook-cryptojs',
-    label: 'Hook CryptoJS',
-    description: '拦截 CryptoJS 的 AES/DES/MD5/SHA/HMAC 等加密方法，在控制台输出明文与密文',
+    labelKey: 'popup.inject.presets.hookCryptoJs.label',
+    descriptionKey: 'popup.inject.presets.hookCryptoJs.description',
     code: HOOK_CRYPTO_JS,
   },
   {
     key: 'hook-jsencrypt',
-    label: 'Hook JSEncrypt',
-    description: '拦截 JSEncrypt 的 RSA encrypt/decrypt/setKey 方法，在控制台输出密钥与明密文',
+    labelKey: 'popup.inject.presets.hookJsEncrypt.label',
+    descriptionKey: 'popup.inject.presets.hookJsEncrypt.description',
     code: HOOK_JSENCRYPT,
   },
   {
     key: 'force-f12',
-    label: '强制开启 F12',
-    description: '绕过网页禁用 F12 / 右键 / debugger 等反调试保护',
+    labelKey: 'popup.inject.presets.forceF12.label',
+    descriptionKey: 'popup.inject.presets.forceF12.description',
     code: FORCE_ENABLE_F12,
   },
 ];

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Tooltip } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   SendOutlined,
   BugOutlined,
   ApiOutlined,
   FileTextOutlined,
-  SettingOutlined,
   CodeOutlined,
   ExperimentOutlined,
   DiffOutlined,
@@ -17,23 +17,23 @@ import {
 /** 导航模块定义 */
 interface NavModule {
   key: string;
-  label: string;
+  labelKey: string;
   icon: React.ReactNode;
 }
 
 /** 可用模块列表 */
 const NAV_MODULES: NavModule[] = [
-  { key: 'packet-replay', label: '抓包/重放', icon: <SendOutlined /> },
-  { key: 'websocket', label: 'WS测试', icon: <SwapOutlined /> },
-  { key: 'api-test', label: 'API测试', icon: <ApiOutlined /> },
-  { key: 'vulnerability', label: '漏洞扫描', icon: <BugOutlined /> },
-  { key: 'codec', label: '加密解密', icon: <LockOutlined /> },
-  { key: 'payload-store', label: 'Payload存储', icon: <CodeOutlined /> },
-  { key: 'data-generator', label: '数据生成', icon: <ExperimentOutlined /> },
-  { key: 'diff', label: 'Diff', icon: <DiffOutlined /> },
-  { key: 'misc', label: '杂项工具', icon: <ToolOutlined /> },
-  { key: 'report-writer', label: '报告编写', icon: <FileTextOutlined /> },
-  // { key: 'settings', label: '设置', icon: <SettingOutlined /> },
+  { key: 'packet-replay', labelKey: 'devtools.modules.packetReplay', icon: <SendOutlined /> },
+  { key: 'websocket', labelKey: 'devtools.modules.websocket', icon: <SwapOutlined /> },
+  { key: 'api-test', labelKey: 'devtools.modules.apiTest', icon: <ApiOutlined /> },
+  { key: 'vulnerability', labelKey: 'devtools.modules.vulnerability', icon: <BugOutlined /> },
+  { key: 'codec', labelKey: 'devtools.modules.codec', icon: <LockOutlined /> },
+  { key: 'payload-store', labelKey: 'devtools.modules.payloadStore', icon: <CodeOutlined /> },
+  { key: 'data-generator', labelKey: 'devtools.modules.dataGenerator', icon: <ExperimentOutlined /> },
+  { key: 'diff', labelKey: 'devtools.modules.diff', icon: <DiffOutlined /> },
+  { key: 'misc', labelKey: 'devtools.modules.misc', icon: <ToolOutlined /> },
+  { key: 'report-writer', labelKey: 'devtools.modules.reportWriter', icon: <FileTextOutlined /> },
+  // { key: 'settings', labelKey: 'devtools.modules.settings', icon: <SettingOutlined /> },
 ];
 
 interface SideNavProps {
@@ -57,6 +57,8 @@ export const SideNav: React.FC<SideNavProps> = ({
   collapsed,
   onCollapsedChange,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="relative flex h-full">
       {/* 导航图标区域 */}
@@ -65,7 +67,7 @@ export const SideNav: React.FC<SideNavProps> = ({
           {NAV_MODULES.map((module) => {
             const isActive = module.key === activeModule;
             return (
-              <Tooltip key={module.key} title={module.label} placement="right" mouseEnterDelay={0.3}>
+              <Tooltip key={module.key} title={t(module.labelKey)} placement="right" mouseEnterDelay={0.3}>
                 <div
                   className={`
                     flex items-center justify-center w-8 h-8 rounded cursor-pointer
@@ -95,7 +97,7 @@ export const SideNav: React.FC<SideNavProps> = ({
           borderRadius: '0 4px 4px 0',
         }}
         onClick={() => onCollapsedChange(!collapsed)}
-        title={collapsed ? '展开侧栏' : '收起侧栏'}
+        title={collapsed ? t('layout.sideNav.expand') : t('layout.sideNav.collapse')}
       >
         <span
           style={{

@@ -5,12 +5,14 @@ import {
   FormOutlined,
   FunctionOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useInject } from '@/hooks/useInject';
 import { ScriptInjectTab } from './ScriptInjectTab';
 import { TextInjectTab } from './TextInjectTab';
 import { VariableInjectTab } from './VariableInjectTab';
 
 export const InjectPanel: React.FC = () => {
+  const { t } = useTranslation();
   const {
     scripts, addScript, updateScript, removeScript, toggleScript,
     injectEnabledScripts, injectSingleScript,
@@ -23,7 +25,7 @@ export const InjectPanel: React.FC = () => {
       key: 'script',
       label: (
         <span className="flex items-center gap-1 text-xs">
-          <CodeOutlined /> 脚本注入
+          <CodeOutlined /> {t('popup.inject.tabs.script')}
         </span>
       ),
       children: (
@@ -42,7 +44,7 @@ export const InjectPanel: React.FC = () => {
       key: 'text',
       label: (
         <span className="flex items-center gap-1 text-xs">
-          <FormOutlined /> 文本注入
+          <FormOutlined /> {t('popup.inject.tabs.text')}
         </span>
       ),
       children: (
@@ -57,7 +59,7 @@ export const InjectPanel: React.FC = () => {
       key: 'variable',
       label: (
         <span className="flex items-center gap-1 text-xs">
-          <FunctionOutlined /> 变量填充
+          <FunctionOutlined /> {t('popup.inject.tabs.variable')}
         </span>
       ),
       children: (

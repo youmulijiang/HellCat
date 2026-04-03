@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, Input, Select, Switch, Tooltip } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -11,19 +12,8 @@ import {
 import { useWsStore } from '@/stores/useWsStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
-const DIRECTION_OPTIONS = [
-  { label: '全部方向', value: 'all' },
-  { label: '↑ 发送', value: 'sent' },
-  { label: '↓ 接收', value: 'received' },
-];
-
-const DATA_TYPE_OPTIONS = [
-  { label: '全部类型', value: 'all' },
-  { label: 'Text', value: 'text' },
-  { label: 'Binary', value: 'binary' },
-];
-
 export const WsToolbar: React.FC = () => {
+  const { t } = useTranslation();
   const { isMonitoring, isIntercepting, toggleMonitor, toggleIntercept, clearAll } = useWebSocket();
   const filter = useWsStore((s) => s.filter);
   const setFilter = useWsStore((s) => s.setFilter);
@@ -32,10 +22,22 @@ export const WsToolbar: React.FC = () => {
   const selectedConnectionId = useWsStore((s) => s.selectedConnectionId);
   const clearFrames = useWsStore((s) => s.clearFrames);
 
+  const directionOptions = [
+    { label: t('devtools.websocket.toolbar.filters.allDirections'), value: 'all' },
+    { label: t('devtools.websocket.toolbar.filters.sent'), value: 'sent' },
+    { label: t('devtools.websocket.toolbar.filters.received'), value: 'received' },
+  ];
+
+  const dataTypeOptions = [
+    { label: t('devtools.websocket.toolbar.filters.allTypes'), value: 'all' },
+    { label: t('devtools.websocket.toolbar.filters.text'), value: 'text' },
+    { label: t('devtools.websocket.toolbar.filters.binary'), value: 'binary' },
+  ];
+
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-200 bg-gray-50/80">
       {/* 监控开关 */}
-      <Tooltip title={isMonitoring ? '停止监控' : '开始监控'}>
+      <Tooltip title={isMonitoring ? t('devtools.websocket.toolbar.tooltips.stopMonitor') : t('devtools.websocket.toolbar.tooltips.startMonitor')}>
         <Button
           type={isMonitoring ? 'primary' : 'default'}
           danger={isMonitoring}
@@ -43,12 +45,12 @@ export const WsToolbar: React.FC = () => {
           icon={isMonitoring ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
           onClick={toggleMonitor}
         >
-          {isMonitoring ? '停止' : '监控'}
+          {isMonitoring ? t('common.actions.stop') : t('devtools.websocket.toolbar.buttons.monitor')}
         </Button>
       </Tooltip>
 
       {/* 拦截开关 */}
-      <Tooltip title={isIntercepting ? '关闭拦截' : '开启拦截（拦截出/入站 WS 帧）'}>
+      <Tooltip title={isIntercepting ? t('devtools.websocket.toolbar.tooltips.stopIntercept') : t('devtools.websocket.toolbar.tooltips.startIntercept')}>
         <Button
           type={isIntercepting ? 'primary' : 'default'}
           danger={isIntercepting}
@@ -57,7 +59,7 @@ export const WsToolbar: React.FC = () => {
           onClick={toggleIntercept}
           disabled={!isMonitoring}
         >
-          {isIntercepting ? '拦截中' : '拦截'}
+          {isIntercepting ? t('devtools.websocket.toolbar.buttons.intercepting') : t('devtools.websocket.toolbar.buttons.intercept')}
         </Button>
       </Tooltip>
 
@@ -67,7 +69,7 @@ export const WsToolbar: React.FC = () => {
       <Select
         size="small"
         value={filter.direction}
-        options={DIRECTION_OPTIONS}
+          options={directionOptions}
         onChange={(v) => setFilter({ direction: v as typeof filter.direction })}
         className="w-24"
       />
@@ -75,14 +77,14 @@ export const WsToolbar: React.FC = () => {
       <Select
         size="small"
         value={filter.dataType}
-        options={DATA_TYPE_OPTIONS}
+          options={dataTypeOptions}
         onChange={(v) => setFilter({ dataType: v as typeof filter.dataType })}
         className="w-24"
       />
 
       <Input
         size="small"
-        placeholder="搜索内容..."
+        placeholder={t('devtools.websocket.toolbar.filters.searchPlaceholder')}
         value={filter.searchText}
         onChange={(e) => setFilter({ searchText: e.target.value })}
         allowClear
@@ -92,7 +94,7 @@ export const WsToolbar: React.FC = () => {
       <div className="flex-1" />
 
       {/* 自动滚动 */}
-      <Tooltip title="自动滚动到最新">
+      <Tooltip title={t('devtools.websocket.toolbar.tooltips.autoScroll')}>
         <div className="flex items-center gap-1">
           <VerticalAlignBottomOutlined
             className={`text-xs ${autoScroll ? 'text-blue-500' : 'text-gray-400'}`}
@@ -108,7 +110,7 @@ export const WsToolbar: React.FC = () => {
       <div className="w-px h-4 bg-gray-300" />
 
       {/* 清空按钮 */}
-      <Tooltip title="清空当前连接帧">
+      <Tooltip title={t('devtools.websocket.toolbar.tooltips.clearCurrentFrames')}>
         <Button
           type="text"
           size="small"
@@ -118,7 +120,7 @@ export const WsToolbar: React.FC = () => {
         />
       </Tooltip>
 
-      <Tooltip title="清空全部">
+      <Tooltip title={t('devtools.websocket.toolbar.tooltips.clearAll')}>
         <Button
           type="text"
           size="small"

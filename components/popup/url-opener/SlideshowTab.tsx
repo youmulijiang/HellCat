@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Input, InputNumber, Progress, Tag, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   CaretRightOutlined,
   PauseOutlined,
@@ -26,6 +27,7 @@ const normalizeUrl = (raw: string): string => {
 };
 
 export const SlideshowTab: React.FC = () => {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [duration, setDuration] = useState(10);
   const [state, setState] = useState<UrlSlideshowState>(createIdleUrlSlideshowState());
@@ -83,63 +85,65 @@ export const SlideshowTab: React.FC = () => {
   const sendControlMessage = useCallback(async (action: string, payload?: Record<string, unknown>) => {
     const response = await browser.runtime.sendMessage({ action, ...(payload ?? {}) }) as UrlSlideshowResponse;
     if (!response?.success) {
-      throw new Error(response?.error || '操作失败');
+      throw new Error(response?.error || t('popup.urlOpener.slideshow.messages.actionFailed'));
     }
     if (response.state) {
       setState(normalizeUrlSlideshowState(response.state));
     }
     return response;
-  }, []);
+  }, [t]);
 
   const handleStart = useCallback(async () => {
     if (previewUrls.length === 0) {
-      message.warning('请输入至少一个URL');
+      message.warning(t('popup.urlOpener.slideshow.messages.inputRequired'));
       return;
     }
 
     try {
       await sendControlMessage('startUrlSlideshow', { urls: previewUrls, duration });
-      message.success('幻灯片已开始播放');
+      message.success(t('popup.urlOpener.slideshow.messages.started'));
     } catch (err) {
-      message.error(err instanceof Error ? err.message : '启动幻灯片失败');
+      message.error(err instanceof Error ? err.message : t('popup.urlOpener.slideshow.messages.startFailed'));
     }
-  }, [duration, previewUrls, sendControlMessage]);
+  }, [duration, previewUrls, sendControlMessage, t]);
 
   const handlePauseResume = useCallback(async () => {
     try {
       if (state.paused) {
         await sendControlMessage('resumeUrlSlideshow');
-        message.success('已继续播放');
+        message.success(t('popup.urlOpener.slideshow.messages.resumed'));
       } else {
         await sendControlMessage('pauseUrlSlideshow');
-        message.success('已暂停播放');
+        message.success(t('popup.urlOpener.slideshow.messages.paused'));
       }
     } catch (err) {
-      message.error(err instanceof Error ? err.message : '切换播放状态失败');
+      message.error(err instanceof Error ? err.message : t('popup.urlOpener.slideshow.messages.toggleFailed'));
     }
-  }, [sendControlMessage, state.paused]);
+  }, [sendControlMessage, state.paused, t]);
 
   const handleStop = useCallback(async () => {
     try {
       await sendControlMessage('stopUrlSlideshow');
-      message.success('已停止播放');
+      message.success(t('popup.urlOpener.slideshow.messages.stopped'));
     } catch (err) {
-      message.error(err instanceof Error ? err.message : '停止播放失败');
+      message.error(err instanceof Error ? err.message : t('popup.urlOpener.slideshow.messages.stopFailed'));
     }
-  }, [sendControlMessage]);
+  }, [sendControlMessage, t]);
 
   const percent = state.total > 0
     ? (state.completed ? 100 : Math.round(((state.currentIndex + 1) / state.total) * 100))
     : 0;
   const statusColor = state.completed ? 'success' : (state.paused ? 'orange' : 'processing');
-  const statusText = state.completed ? '已完成' : (state.paused ? '已暂停' : '播放中');
+  const statusText = state.completed
+    ? t('common.status.completed')
+    : (state.paused ? t('common.status.paused') : t('common.status.running'));
 
   return (
     <div className="flex h-full flex-col gap-3">
       <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
         <div className="flex items-center gap-2">
           <ClockCircleOutlined className="text-gray-400" />
-          <span className="text-sm font-medium text-gray-700">每页停留</span>
+          <span className="text-sm font-medium text-gray-700">{t('popup.urlOpener.slideshow.stayDuration')}</span>
         </div>
         <div className="mt-2 flex items-center gap-2">
           <InputNumber
@@ -150,7 +154,7 @@ export const SlideshowTab: React.FC = () => {
             className="w-28"
             disabled={state.running || state.paused}
           />
-          <span className="text-sm text-gray-400">秒 / 页</span>
+          <span className="text-sm text-gray-400">{t('popup.urlOpener.slideshow.secondsPerPage')}</span>
           {hasSession && <Tag color={statusColor}>{statusText}</Tag>}
         </div>
       </div>
@@ -159,7 +163,7 @@ export const SlideshowTab: React.FC = () => {
         <TextArea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={'每行一个URL，例如:\nexample.com\nhttps://google.com'}
+          placeholder={t('popup.urlOpener.slideshow.placeholder')}
           className="!h-full !resize-none rounded-lg text-sm font-mono leading-6"
           spellCheck={false}
           disabled={state.running || state.paused}
@@ -168,8 +172,8 @@ export const SlideshowTab: React.FC = () => {
 
       <div className="rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700">播放队列</span>
-          <span className="text-xs text-gray-400">{displayUrls.length} 个 URL</span>
+          <span className="text-sm font-medium text-gray-700">{t('popup.urlOpener.slideshow.queueTitle')}</span>
+          <span className="text-xs text-gray-400">{t('popup.urlOpener.slideshow.queueCount', { count: displayUrls.length })}</span>
         </div>
 
         <div className="max-h-32 overflow-y-auto pr-1">
@@ -197,7 +201,11 @@ export const SlideshowTab: React.FC = () => {
                       <span className="truncate">{url}</span>
                       {isCurrent && (
                         <span className="ml-auto shrink-0 rounded-full bg-white/90 px-2 py-0.5 text-xs">
-                          {state.paused ? '暂停中' : (state.completed ? '结束' : '当前')}
+                          {state.paused
+                            ? t('popup.urlOpener.slideshow.queueBadge.paused')
+                            : (state.completed
+                              ? t('popup.urlOpener.slideshow.queueBadge.completed')
+                              : t('popup.urlOpener.slideshow.queueBadge.current'))}
                         </span>
                       )}
                     </div>
@@ -207,7 +215,7 @@ export const SlideshowTab: React.FC = () => {
             </div>
           ) : (
             <div className="rounded-md border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-400">
-              请输入 URL 列表后开始播放
+              {t('popup.urlOpener.slideshow.queueEmpty')}
             </div>
           )}
         </div>
@@ -216,21 +224,21 @@ export const SlideshowTab: React.FC = () => {
       {hasSession && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">播放进度</span>
+            <span className="text-sm font-medium text-gray-700">{t('popup.urlOpener.slideshow.progressTitle')}</span>
             <span className="text-xs text-gray-400">
               {Math.min(state.currentIndex + 1, state.total)} / {state.total}
             </span>
           </div>
           <Progress percent={percent} size="small" showInfo={false} />
           <div className="truncate text-xs leading-5 text-gray-500" title={state.currentUrl || displayUrls[state.currentIndex] || ''}>
-            当前: {state.currentUrl || displayUrls[state.currentIndex] || '-'}
+            {t('popup.urlOpener.slideshow.currentUrl', { url: state.currentUrl || displayUrls[state.currentIndex] || '-' })}
           </div>
         </div>
       )}
 
       <div className="flex items-center justify-between">
         <span className="text-xs text-gray-400">
-          {hasSession ? `${state.total} 个URL` : `${lineCount} 个URL`}
+          {t('popup.urlOpener.slideshow.countLabel', { count: hasSession ? state.total : lineCount })}
         </span>
         <div className="flex items-center gap-2">
           {state.running || state.paused ? (
@@ -240,10 +248,10 @@ export const SlideshowTab: React.FC = () => {
                 icon={state.paused ? <CaretRightOutlined /> : <PauseOutlined />}
                 onClick={handlePauseResume}
               >
-                {state.paused ? '继续' : '暂停'}
+                {state.paused ? t('common.actions.resume') : t('common.actions.pause')}
               </Button>
               <Button danger icon={<StopOutlined />} onClick={handleStop}>
-                停止
+                {t('common.actions.stop')}
               </Button>
             </>
           ) : (
@@ -253,7 +261,7 @@ export const SlideshowTab: React.FC = () => {
               disabled={lineCount === 0}
               onClick={handleStart}
             >
-              开始播放
+              {t('common.actions.start')}
             </Button>
           )}
         </div>

@@ -22,21 +22,21 @@ export interface ScanResults {
   jsFiles: InfoItem[];
 }
 
-/** 各分类中文名称 */
-export const SCAN_SECTION_LABELS: Record<keyof ScanResults, string> = {
-  domains: '域名',
-  absoluteApis: 'API接口(绝对路径)',
-  apis: 'API接口(相对路径)',
-  ips: 'IP地址',
-  phones: '手机号码',
-  emails: '邮箱',
-  idcards: '身份证号',
-  jwts: 'JWT Token',
-  credentials: '用户名密码',
-  idKeys: 'ID密钥',
-  urls: 'URL',
-  jsFiles: 'JS文件',
-};
+/** 各分类顺序 */
+export const SCAN_SECTION_KEYS: (keyof ScanResults)[] = [
+  'domains',
+  'absoluteApis',
+  'apis',
+  'ips',
+  'phones',
+  'emails',
+  'idcards',
+  'jwts',
+  'credentials',
+  'idKeys',
+  'urls',
+  'jsFiles',
+];
 
 /** content → popup 扫描更新消息 */
 export interface ScanUpdateMessage {

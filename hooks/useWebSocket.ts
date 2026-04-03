@@ -6,6 +6,8 @@ import type {
   BackgroundToDevToolsMessage,
 } from '@/types/messaging';
 
+type RuntimePort = ReturnType<typeof browser.runtime.connect>;
+
 /**
  * WebSocket 监控 Hook
  * 通过 browser.runtime.connect 与 background 通信，
@@ -18,7 +20,7 @@ export function useWebSocket() {
   const isIntercepting = useWsStore((s) => s.isIntercepting);
   const clearAll = useWsStore((s) => s.clearAll);
 
-  const portRef = useRef<browser.runtime.Port | null>(null);
+  const portRef = useRef<RuntimePort | null>(null);
 
   /** 获取或创建 port（使用 getState 避免闭包过期） */
   const getPort = useCallback(() => {

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Button, Input, Checkbox, Select, Tooltip, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   ChromeOutlined,
-  CopyOutlined,
   DeleteOutlined,
   FilterOutlined,
   ImportOutlined,
-  OrderedListOutlined,
   WindowsOutlined,
 } from '@ant-design/icons';
 import { browser } from 'wxt/browser';
@@ -29,6 +28,7 @@ const extractUrlsFromText = (text: string): string[] => {
 };
 
 export const MultiOpenTab: React.FC = () => {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [openMode, setOpenMode] = useState<'current' | 'new'>('current');
   const [ignoreDuplicates, setIgnoreDuplicates] = useState(false);
@@ -56,7 +56,7 @@ export const MultiOpenTab: React.FC = () => {
     const unique = [...new Set(lines)];
     const removed = lines.length - unique.length;
     setText(unique.join('\n'));
-    message.success(`已去重，移除 ${removed} 条重复`);
+    message.success(t('popup.urlOpener.multiOpen.messages.deduplicated', { count: removed }));
   };
 
   /** 获取当前所有标签页 URL */
@@ -67,14 +67,14 @@ export const MultiOpenTab: React.FC = () => {
         .map((t) => t.url)
         .filter((u): u is string => !!u && /^https?:\/\//.test(u));
       if (tabUrls.length === 0) {
-        message.warning('没有找到有效的标签页URL');
+        message.warning(t('popup.urlOpener.multiOpen.messages.noValidTabUrls'));
         return;
       }
       const current = text.trim();
       setText(current ? `${current}\n${tabUrls.join('\n')}` : tabUrls.join('\n'));
-      message.success(`已获取 ${tabUrls.length} 个标签页URL`);
+      message.success(t('popup.urlOpener.multiOpen.messages.fetchedTabUrls', { count: tabUrls.length }));
     } catch {
-      message.error('获取标签页URL失败');
+      message.error(t('popup.urlOpener.multiOpen.messages.fetchTabUrlsFailed'));
     }
   };
 
@@ -82,35 +82,40 @@ export const MultiOpenTab: React.FC = () => {
   const handleExtractUrls = () => {
     const extracted = extractUrlsFromText(text);
     if (extracted.length === 0) {
-      message.warning('未从文本中提取到URL');
+      message.warning(t('popup.urlOpener.multiOpen.messages.noUrlsExtracted'));
       return;
     }
     setText(extracted.join('\n'));
-    message.success(`已提取 ${extracted.length} 个URL`);
+    message.success(t('popup.urlOpener.multiOpen.messages.extractedUrls', { count: extracted.length }));
   };
 
   /** 打开 URL */
   const handleOpen = async () => {
     const urls = getUrls();
     if (urls.length === 0) {
-      message.warning('请输入至少一个URL');
+      message.warning(t('popup.urlOpener.multiOpen.messages.inputRequired'));
       return;
     }
     setLoading(true);
     try {
       if (openMode === 'new') {
         const win = await browser.windows.create({ url: urls[0] });
+        if (!win || typeof win.id !== 'number') {
+          throw new Error(t('popup.urlOpener.multiOpen.messages.createWindowFailed'));
+        }
+
+        const windowId = win.id;
         for (let i = 1; i < urls.length; i++) {
-          await browser.tabs.create({ windowId: win.id, url: urls[i] });
+          await browser.tabs.create({ windowId, url: urls[i] });
         }
       } else {
         for (const url of urls) {
           await browser.tabs.create({ url });
         }
       }
-      message.success(`已打开 ${urls.length} 个URL`);
-    } catch {
-      message.error('打开URL失败');
+      message.success(t('popup.urlOpener.multiOpen.messages.openedUrls', { count: urls.length }));
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : t('popup.urlOpener.multiOpen.messages.openFailed'));
     } finally {
       setLoading(false);
     }
@@ -120,24 +125,24 @@ export const MultiOpenTab: React.FC = () => {
     <div className="flex h-full min-h-0 flex-col gap-2">
       {/* 工具栏 */}
       <div className="flex items-center gap-1 flex-wrap">
-        <Tooltip title="获取所有标签页URL">
+        <Tooltip title={t('popup.urlOpener.multiOpen.tooltips.getTabUrls')}>
           <Button size="small" icon={<ImportOutlined />} onClick={handleGetTabUrls}>
-            获取标签页
+            {t('popup.urlOpener.multiOpen.buttons.getTabUrls')}
           </Button>
         </Tooltip>
-        <Tooltip title="从文本中提取URL">
+        <Tooltip title={t('popup.urlOpener.multiOpen.tooltips.extractUrls')}>
           <Button size="small" icon={<FilterOutlined />} onClick={handleExtractUrls}>
-            提取URL
+            {t('popup.urlOpener.multiOpen.buttons.extractUrls')}
           </Button>
         </Tooltip>
-        <Tooltip title="去除重复URL">
+        <Tooltip title={t('popup.urlOpener.multiOpen.tooltips.deduplicate')}>
           <Button size="small" icon={<DeleteOutlined />} onClick={handleDedup}>
-            去重
+            {t('popup.urlOpener.multiOpen.buttons.deduplicate')}
           </Button>
         </Tooltip>
-        <Tooltip title="清空">
+        <Tooltip title={t('popup.urlOpener.multiOpen.tooltips.clear')}>
           <Button size="small" danger onClick={() => setText('')}>
-            清空
+            {t('common.actions.clear')}
           </Button>
         </Tooltip>
       </div>
@@ -147,7 +152,7 @@ export const MultiOpenTab: React.FC = () => {
         <TextArea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={'每行一个URL，例如:\nexample.com\nhttps://google.com\n192.168.1.1:8080'}
+          placeholder={t('popup.urlOpener.multiOpen.placeholder')}
           className="!h-full !resize-none text-xs font-mono"
           spellCheck={false}
         />
@@ -160,15 +165,15 @@ export const MultiOpenTab: React.FC = () => {
             checked={ignoreDuplicates}
             onChange={(e) => setIgnoreDuplicates(e.target.checked)}
           >
-            <span className="text-[11px]">去重</span>
+            <span className="text-[11px]">{t('popup.urlOpener.multiOpen.options.ignoreDuplicates')}</span>
           </Checkbox>
           <Checkbox
             checked={randomOrder}
             onChange={(e) => setRandomOrder(e.target.checked)}
           >
-            <span className="text-[11px]">随机</span>
+            <span className="text-[11px]">{t('popup.urlOpener.multiOpen.options.randomOrder')}</span>
           </Checkbox>
-          <span className="text-[10px] text-gray-400">{lineCount} 条</span>
+          <span className="text-[10px] text-gray-400">{t('popup.urlOpener.multiOpen.options.lineCount', { count: lineCount })}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Select
@@ -177,8 +182,8 @@ export const MultiOpenTab: React.FC = () => {
             onChange={setOpenMode}
             className="w-24"
             options={[
-              { value: 'current', label: '当前窗口' },
-              { value: 'new', label: '新窗口' },
+              { value: 'current', label: t('popup.urlOpener.multiOpen.options.currentWindow') },
+              { value: 'new', label: t('popup.urlOpener.multiOpen.options.newWindow') },
             ]}
           />
           <Button
@@ -189,7 +194,7 @@ export const MultiOpenTab: React.FC = () => {
             disabled={lineCount === 0}
             onClick={handleOpen}
           >
-            打开 ({lineCount})
+            {t('popup.urlOpener.multiOpen.buttons.openWithCount', { count: lineCount })}
           </Button>
         </div>
       </div>
