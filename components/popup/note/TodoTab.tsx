@@ -16,7 +16,8 @@ const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 function loadTodos(): TodoItem[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const parsed: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    return Array.isArray(parsed) ? (parsed as TodoItem[]) : [];
   } catch {
     return [];
   }

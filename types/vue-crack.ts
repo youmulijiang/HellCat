@@ -47,6 +47,17 @@ export interface VueRouterAnalysisPostMessage {
   result: VueRouterAnalysisResult;
 }
 
+/** Content Script → 页面上下文：显式请求修改路由鉴权 */
+export interface VuePatchAuthCommand {
+  type: 'VUE_PATCH_AUTH';
+}
+
+/** 页面上下文 → Content Script：路由鉴权修改完成（结果为更新后的完整分析） */
+export interface VuePatchAuthResultPostMessage {
+  type: 'VUE_PATCH_AUTH_RESULT';
+  result: VueRouterAnalysisResult;
+}
+
 export interface VueRouterAnalysisErrorPostMessage {
   type: 'VUE_ROUTER_ANALYSIS_ERROR';
   error: string;
@@ -57,12 +68,14 @@ export interface VueRouterAnalysisErrorPostMessage {
 /** Popup → Content Script 请求 */
 export type VueCrackRequest =
   | { action: 'detectVue' }
-  | { action: 'analyzeVueRouter' };
+  | { action: 'analyzeVueRouter' }
+  | { action: 'patchVueAuth' };
 
 /** Content Script → Popup 响应（通过 runtime.sendMessage） */
 export type VueCrackEvent =
   | { action: 'vueDetectionResult'; result: VueDetectionResult }
   | { action: 'vueRouterAnalysisResult'; result: VueRouterAnalysisResult }
+  | { action: 'vuePatchResult'; result: VueRouterAnalysisResult }
   | { action: 'vueDetectionError'; error: string }
   | { action: 'vueRouterAnalysisError'; error: string };
 

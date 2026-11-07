@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, List, Tag, message, Spin, Typography, Space, Tooltip, Empty, Input } from 'antd';
+import { Button, List, Tag, message, Spin, Typography, Space, Tooltip, Empty, Input, Popconfirm } from 'antd';
 import {
   SearchOutlined,
   CopyOutlined,
@@ -9,6 +9,7 @@ import {
   ExclamationCircleOutlined,
   ReloadOutlined,
   EditOutlined,
+  UnlockOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useVueCrack } from '@/hooks/useVueCrack';
@@ -21,7 +22,9 @@ export const VueCrackPanel: React.FC = () => {
     status,
     analysis,
     error,
+    patched,
     detect,
+    patchAuth,
     buildFullUrls,
     copyAllPaths,
     copyAllUrls,
@@ -151,14 +154,29 @@ export const VueCrackPanel: React.FC = () => {
             <CloseCircleOutlined /> {t('popup.vueCrack.status.routerNotDetected')}
           </Tag>
         )}
-        {(analysis?.modifiedRoutes?.length ?? 0) > 0 && (
+        {patched && (analysis?.modifiedRoutes?.length ?? 0) > 0 && (
           <Tag color="orange" className="text-[10px] m-0">
             {t('popup.vueCrack.status.modifiedRoutes', { count: analysis!.modifiedRoutes.length })}
           </Tag>
         )}
-        <Tag color="purple" className="text-[10px] m-0">{t('popup.vueCrack.status.guardsCleared')}</Tag>
+        {patched && <Tag color="purple" className="text-[10px] m-0">{t('popup.vueCrack.status.guardsCleared')}</Tag>}
         <Button size="small" type="text" icon={<ReloadOutlined />} onClick={detect} className="ml-auto" />
       </div>
+
+      {/* 显式鉴权绕过（检测阶段不会自动修改页面路由） */}
+      {analysis?.routerDetected && !patched && (
+        <Popconfirm
+          title={t('popup.vueCrack.confirmPatch.title')}
+          description={t('popup.vueCrack.confirmPatch.description')}
+          okText={t('common.actions.confirm')}
+          cancelText={t('common.actions.cancel')}
+          onConfirm={() => void patchAuth()}
+        >
+          <Button size="small" danger icon={<UnlockOutlined />}>
+            {t('popup.vueCrack.actions.patchAuth')}
+          </Button>
+        </Popconfirm>
+      )}
 
       {/* Base Path 状态栏 */}
       {analysis?.routerDetected && (

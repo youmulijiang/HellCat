@@ -100,6 +100,9 @@ export const ProxyEditModal: React.FC<ProxyEditModalProps> = ({
             <Input.Password placeholder={t('popup.proxy.modal.optionalPlaceholder')} />
           </Form.Item>
         </div>
+        <div className="text-[10px] text-orange-400 -mt-1 mb-2">
+          {t('popup.proxy.modal.credentialsHint')}
+        </div>
         <Form.Item name="bypassText" label={t('popup.proxy.modal.bypassListOptional')}>
           <Input.TextArea
             rows={4}

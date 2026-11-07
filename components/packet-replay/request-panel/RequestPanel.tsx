@@ -1,4 +1,5 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePacketStore } from '@/stores/usePacketStore';
 import { PanelHeader } from '../shared/PanelHeader';
 import { ContentTabs } from '../shared/ContentTabs';
@@ -18,6 +19,7 @@ interface RequestPanelProps {
  * 展示选中数据包的请求详情，支持编辑
  */
 export const RequestPanel: React.FC<RequestPanelProps> = ({ onSend }) => {
+  const { t } = useTranslation();
   const {
     requestViewTab,
     setRequestViewTab,
@@ -28,6 +30,7 @@ export const RequestPanel: React.FC<RequestPanelProps> = ({ onSend }) => {
     setEditedRequestRaw,
     pushRequestEditSnapshot,
   } = usePacketStore();
+  const selectedPacketId = usePacketStore((s) => s.selectedPacketId);
 
   const selectedPacket = getSelectedPacket();
 
@@ -35,6 +38,11 @@ export const RequestPanel: React.FC<RequestPanelProps> = ({ onSend }) => {
   const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 是否已记录初始快照
   const hasInitialSnapshotRef = useRef(false);
+
+  // 切换选中的数据包时重置快照标记，确保每个包的撤销历史都包含初始状态
+  useEffect(() => {
+    hasInitialSnapshotRef.current = false;
+  }, [selectedPacketId]);
 
   /** 根据视图标签获取展示内容 */
   const getContent = (): string => {
@@ -88,7 +96,7 @@ export const RequestPanel: React.FC<RequestPanelProps> = ({ onSend }) => {
         onChange={handleChange}
       />
       <SearchBar
-        placeholder="Search in request..."
+        placeholder={t('devtools.packetReplay.request.searchPlaceholder')}
         value={requestSearchKeyword}
         onChange={setRequestSearchKeyword}
       />

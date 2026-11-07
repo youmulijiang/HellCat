@@ -275,7 +275,7 @@ export const ScreenshotTab: React.FC = () => {
           <List
             size="small"
             dataSource={results}
-            renderItem={(item, index) => (
+            renderItem={(item) => (
               <List.Item
                 className="!px-1 !py-1.5"
                 actions={[

@@ -14,8 +14,15 @@ import {
 import type { MenuProps } from 'antd';
 import MDEditor from '@uiw/react-md-editor';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import html2pdf from 'html2pdf.js';
 import { db, type Report, type ReportImage } from '@/stores/reportDb';
+
+/** 清理文件名中的非法字符（Windows 下载会失败） */
+const sanitizeFileName = (name: string) => name.replace(/[\\/:*?"<>|]/g, '_');
+
+/** Markdown 渲染结果消毒：报告内容可能来自不可信来源的粘贴，导出文件不能携带活动脚本 */
+const sanitizeHtml = (html: string) => DOMPurify.sanitize(html);
 
 /**
  * 报告编写模块主布局
@@ -188,12 +195,16 @@ export const ReportLayout: React.FC = () => {
 
   /** 构建完整的 HTML 页面（带样式） */
   const buildHtmlPage = useCallback((htmlBody: string, reportTitle: string, lang: string) => {
+    const escapedTitle = reportTitle
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
     return `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>${reportTitle}</title>
+<title>${escapedTitle}</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px 24px; color: #1a1a1a; line-height: 1.75; background: #fff; }
   h1 { font-size: 2em; border-bottom: 2px solid #e8e8e8; padding-bottom: .3em; margin-top: 1.5em; }
@@ -227,7 +238,7 @@ export const ReportLayout: React.FC = () => {
     const a = document.createElement('a');
     const defaultFileName = t('devtools.reportWriter.export.defaultFileName');
     a.href = url;
-    a.download = `${title || defaultFileName}.md`;
+    a.download = `${sanitizeFileName(title || defaultFileName)}.md`;
     a.click();
     URL.revokeObjectURL(url);
     message.success(t('devtools.reportWriter.messages.markdownExported'));
@@ -237,7 +248,7 @@ export const ReportLayout: React.FC = () => {
   const handleExportHtml = useCallback(async () => {
     if (!activeId) return;
     const md = await getExportMarkdown();
-    const htmlBody = await marked.parse(md);
+    const htmlBody = sanitizeHtml(await marked.parse(md));
     const locale = i18n.resolvedLanguage ?? i18n.language;
     const htmlLang = locale.startsWith('en') ? 'en' : 'zh-CN';
     const defaultFileName = t('devtools.reportWriter.export.defaultFileName');
@@ -246,7 +257,7 @@ export const ReportLayout: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${title || defaultFileName}.html`;
+    a.download = `${sanitizeFileName(title || defaultFileName)}.html`;
     a.click();
     URL.revokeObjectURL(url);
     message.success(t('devtools.reportWriter.messages.htmlExported'));
@@ -256,7 +267,7 @@ export const ReportLayout: React.FC = () => {
   const handleExportPdf = useCallback(async () => {
     if (!activeId) return;
     const md = await getExportMarkdown();
-    const htmlBody = await marked.parse(md);
+    const htmlBody = sanitizeHtml(await marked.parse(md));
     const locale = i18n.resolvedLanguage ?? i18n.language;
     const htmlLang = locale.startsWith('en') ? 'en' : 'zh-CN';
     const defaultFileName = t('devtools.reportWriter.export.defaultFileName');
@@ -272,7 +283,7 @@ export const ReportLayout: React.FC = () => {
       await html2pdf()
         .set({
           margin: [10, 10, 10, 10],
-          filename: `${title || defaultFileName}.pdf`,
+          filename: `${sanitizeFileName(title || defaultFileName)}.pdf`,
           image: { type: 'jpeg', quality: 0.95 },
           html2canvas: { scale: 2, useCORS: true, logging: false },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },

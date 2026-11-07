@@ -8,7 +8,7 @@ const { TextArea } = Input;
 interface Props {
   open: boolean;
   script: InjectScript | null;
-  onSave: (name: string, code: string) => void | Promise<void>;
+  onSave: (name: string, code: string, urlPattern?: string) => void | Promise<void>;
   confirmLoading?: boolean;
   onCancel: () => void;
 }
@@ -25,13 +25,14 @@ export const ScriptEditModal: React.FC<Props> = ({
       form.setFieldsValue({
         name: script?.name || '',
         code: script?.code || (script ? '' : defaultCodeTemplate),
+        urlPattern: script?.urlPattern || '',
       });
     }
   }, [defaultCodeTemplate, open, script, form]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
-    await onSave(values.name, values.code);
+    await onSave(values.name, values.code, values.urlPattern?.trim() || undefined);
     form.resetFields();
   };
 
@@ -66,6 +67,14 @@ export const ScriptEditModal: React.FC<Props> = ({
             className="font-mono text-xs"
             spellCheck={false}
           />
+        </Form.Item>
+        <Form.Item
+          name="urlPattern"
+          label={t('popup.inject.script.modal.urlPatternLabel')}
+          tooltip={t('popup.inject.script.modal.urlPatternTooltip')}
+          extra={t('popup.inject.script.modal.urlPatternExtra')}
+        >
+          <Input placeholder="*://*.example.com/*" size="small" className="font-mono text-xs" allowClear />
         </Form.Item>
       </Form>
     </Modal>

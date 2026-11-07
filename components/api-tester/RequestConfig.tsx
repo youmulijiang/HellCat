@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tabs, Radio, Input } from 'antd';
+import { useTranslation } from 'react-i18next';
 import type { KeyValueItem } from './KeyValueEditor';
 import { KeyValueEditor } from './KeyValueEditor';
 
@@ -41,6 +42,7 @@ export const RequestConfig: React.FC<RequestConfigProps> = ({
   bodyFormItems, onBodyFormItemsChange,
   activeTab, onActiveTabChange,
 }) => {
+  const { t } = useTranslation();
   /** Body 标签页内容 */
   const renderBodyContent = () => (
     <div className="flex flex-col gap-2">
@@ -60,7 +62,7 @@ export const RequestConfig: React.FC<RequestConfigProps> = ({
       {/* Body 内容 */}
       {bodyType === 'none' ? (
         <div className="py-4 text-center text-sm text-gray-400">
-          This request does not have a body
+          {t('devtools.apiTester.noBodyHint')}
         </div>
       ) : bodyType === 'form-urlencoded' || bodyType === 'form-data' ? (
         <KeyValueEditor

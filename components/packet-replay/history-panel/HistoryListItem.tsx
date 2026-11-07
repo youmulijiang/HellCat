@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tag, Typography, Button, Tooltip } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { StarFilled, StarOutlined, FastForwardOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import type { CapturedPacket } from '@/types/packet';
 
@@ -24,6 +25,7 @@ export const HistoryListItem: React.FC<HistoryListItemProps> = ({
   onForward,
   onDrop,
 }) => {
+  const { t } = useTranslation();
   const isIntercepted = packet.status === 'intercepted';
   const isDropped = packet.status === 'dropped';
   const isForwarded = packet.status === 'forwarded';
@@ -119,7 +121,7 @@ export const HistoryListItem: React.FC<HistoryListItemProps> = ({
       {/* 拦截操作按钮 / 耗时 */}
       {isIntercepted ? (
         <span className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="放行" mouseEnterDelay={0.3}>
+          <Tooltip title={t('devtools.packetReplay.history.forward')} mouseEnterDelay={0.3}>
             <Button
               type="primary"
               size="small"
@@ -128,7 +130,7 @@ export const HistoryListItem: React.FC<HistoryListItemProps> = ({
               onClick={() => onForward?.(packet.id)}
             />
           </Tooltip>
-          <Tooltip title="丢弃" mouseEnterDelay={0.3}>
+          <Tooltip title={t('devtools.packetReplay.history.drop')} mouseEnterDelay={0.3}>
             <Button
               danger
               size="small"

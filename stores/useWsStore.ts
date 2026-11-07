@@ -5,7 +5,6 @@ import type {
   WsFrame,
   WsFrameFilter,
   WsFrameDirection,
-  WsFrameDataType,
   PausedWsFrame,
 } from '@/types/websocket';
 
@@ -84,6 +83,9 @@ const DEFAULT_FILTER: WsFrameFilter = {
   dataType: 'all',
 };
 
+/** 每个连接最多保留的帧数量（高频 WS 通道不设上限会耗尽面板内存） */
+const MAX_FRAMES_PER_CONNECTION = 1000;
+
 export const useWsStore = create<WsStoreState>((set, get) => ({
   connections: [],
   frames: new Map(),
@@ -139,7 +141,14 @@ export const useWsStore = create<WsStoreState>((set, get) => ({
     set((state) => {
       const newFrames = new Map(state.frames);
       const existing = newFrames.get(connectionId) ?? [];
-      newFrames.set(connectionId, [...existing, frame]);
+      const nextFrames = [...existing, frame];
+      // 超出上限时丢弃最旧的帧
+      newFrames.set(
+        connectionId,
+        nextFrames.length > MAX_FRAMES_PER_CONNECTION
+          ? nextFrames.slice(nextFrames.length - MAX_FRAMES_PER_CONNECTION)
+          : nextFrames,
+      );
 
       // 更新连接计数
       const connections = state.connections.map((c) => {
@@ -196,7 +205,7 @@ export const useWsStore = create<WsStoreState>((set, get) => ({
     });
   },
 
-  setIntercepting: (active) => set({ isIntercepting: active, pausedFrames: active ? [] : [] }),
+  setIntercepting: (active) => set({ isIntercepting: active }),
 
   addPausedFrame: (frame) =>
     set((state) => ({ pausedFrames: [...state.pausedFrames, frame] })),

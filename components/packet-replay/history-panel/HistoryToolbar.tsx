@@ -1,5 +1,6 @@
 import React from 'react';
-import { Input, Button, Space, Tooltip, Badge } from 'antd';
+import { Input, Button, Tooltip, Badge } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   DeleteOutlined,
   PauseCircleOutlined,
@@ -20,6 +21,7 @@ interface HistoryToolbarProps {
  * 包含捕获开关、拦截开关、过滤输入框、操作按钮
  */
 export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, onDropAll }) => {
+  const { t } = useTranslation();
   const {
     packets,
     filterKeyword,
@@ -38,7 +40,7 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, on
     <div className="border-b border-gray-200 bg-[#fafafa]">
       {/* 第一行：捕获控制 + 拦截控制 */}
       <div className="flex items-center px-2 py-1 gap-1">
-        <Tooltip title={isCapturing ? '暂停捕获' : '开始捕获'} mouseEnterDelay={0.3}>
+        <Tooltip title={isCapturing ? t('devtools.packetReplay.history.pauseCapture') : t('devtools.packetReplay.history.startCapture')} mouseEnterDelay={0.3}>
           <Button
             size="small"
             type={isCapturing ? 'primary' : 'default'}
@@ -49,7 +51,7 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, on
           </Button>
         </Tooltip>
 
-        <Tooltip title={isIntercepting ? '关闭拦截' : '开启拦截'} mouseEnterDelay={0.3}>
+        <Tooltip title={isIntercepting ? t('devtools.packetReplay.history.stopIntercept') : t('devtools.packetReplay.history.startIntercept')} mouseEnterDelay={0.3}>
           <Button
             size="small"
             type={isIntercepting ? 'primary' : 'default'}
@@ -64,7 +66,7 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, on
         {/* 拦截模式下显示 Forward / Drop 按钮 */}
         {isIntercepting && interceptedCount > 0 && (
           <>
-            <Tooltip title="放行所有拦截的请求" mouseEnterDelay={0.3}>
+            <Tooltip title={t('devtools.packetReplay.history.forwardAll')} mouseEnterDelay={0.3}>
               <Button
                 size="small"
                 type="primary"
@@ -77,7 +79,7 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, on
                 Forward ({interceptedCount})
               </Button>
             </Tooltip>
-            <Tooltip title="丢弃所有拦截的请求" mouseEnterDelay={0.3}>
+            <Tooltip title={t('devtools.packetReplay.history.dropAll')} mouseEnterDelay={0.3}>
               <Button
                 size="small"
                 danger
@@ -110,7 +112,7 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({ onForwardAll, on
           allowClear
           className="flex-1"
         />
-        <Tooltip title="Clear history" mouseEnterDelay={0.5}>
+        <Tooltip title={t('common.actions.clear')} mouseEnterDelay={0.5}>
           <Button type="text" size="small" icon={<DeleteOutlined />} onClick={clearPackets} />
         </Tooltip>
       </div>

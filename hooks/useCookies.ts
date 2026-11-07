@@ -69,22 +69,28 @@ export function useCookies() {
     }
   }, [getCurrentTab]);
 
-  /** 删除单个 cookie */
-  const removeCookie = useCallback(async (cookie: CookieItem) => {
+  /** 删除单个 cookie（不刷新列表，供批量操作复用） */
+  const removeCookieRaw = useCallback(async (cookie: CookieItem) => {
     const protocol = cookie.secure ? 'https' : 'http';
     const domain = cookie.domain.startsWith('.') ? cookie.domain.slice(1) : cookie.domain;
     const url = `${protocol}://${domain}${cookie.path}`;
     await browser.cookies.remove({ url, name: cookie.name });
+  }, []);
+
+  /** 删除单个 cookie 并刷新列表 */
+  const removeCookie = useCallback(async (cookie: CookieItem) => {
+    await removeCookieRaw(cookie);
     await loadCookies();
-  }, [loadCookies]);
+  }, [removeCookieRaw, loadCookies]);
 
-  /** 删除所有 cookie */
+  /** 删除所有 cookie（批量删除后只刷新一次列表） */
   const removeAllCookies = useCallback(async () => {
-    await Promise.all(cookies.map((c) => removeCookie(c)));
-  }, [cookies, removeCookie]);
+    await Promise.allSettled(cookies.map((c) => removeCookieRaw(c)));
+    await loadCookies();
+  }, [cookies, removeCookieRaw, loadCookies]);
 
-  /** 添加或更新 cookie */
-  const setCookie = useCallback(async (cookie: Omit<CookieItem, 'key'>) => {
+  /** 添加或更新 cookie（不刷新列表，供批量操作复用） */
+  const setCookieRaw = useCallback(async (cookie: Omit<CookieItem, 'key'>) => {
     const protocol = cookie.secure ? 'https' : 'http';
     const domain = cookie.domain.startsWith('.') ? cookie.domain.slice(1) : cookie.domain;
     const url = `${protocol}://${domain}${cookie.path}`;
@@ -100,21 +106,33 @@ export function useCookies() {
       sameSite: cookie.sameSite,
       expirationDate: cookie.expirationDate,
     });
+  }, []);
+
+  /** 添加或更新 cookie 并刷新列表 */
+  const setCookie = useCallback(async (cookie: Omit<CookieItem, 'key'>) => {
+    await setCookieRaw(cookie);
     await loadCookies();
-  }, [loadCookies]);
+  }, [setCookieRaw, loadCookies]);
 
   /** 导出所有 cookie 为 JSON 字符串 */
   const exportCookies = useCallback(() => {
     return JSON.stringify(cookies, null, 2);
   }, [cookies]);
 
-  /** 导入 cookie (JSON 字符串) */
+  /** 导入 cookie (JSON 字符串)，校验失败时抛出异常，批量写入后只刷新一次列表 */
   const importCookies = useCallback(async (json: string) => {
-    const items: Omit<CookieItem, 'key'>[] = JSON.parse(json);
-    for (const item of items) {
-      await setCookie(item);
+    const items: unknown = JSON.parse(json);
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error('invalid_cookie_json');
     }
-  }, [setCookie]);
+    for (const item of items) {
+      if (!item || typeof item !== 'object' || typeof (item as { name?: unknown }).name !== 'string') {
+        throw new Error('invalid_cookie_json');
+      }
+      await setCookieRaw(item as Omit<CookieItem, 'key'>);
+    }
+    await loadCookies();
+  }, [setCookieRaw, loadCookies]);
 
   useEffect(() => {
     loadCookies();

@@ -24,6 +24,10 @@ export interface AppTranslationSchema {
       run: string;
       inject: string;
       fill: string;
+      extract: string;
+    };
+    replay: {
+      cookieDroppedWarning: string;
     };
     feedback: {
       saveSuccess: string;
@@ -107,6 +111,13 @@ export interface AppTranslationSchema {
         idKeys: string;
         urls: string;
         jsFiles: string;
+        cookies: string;
+        companies: string;
+        githubUrls: string;
+        vueFiles: string;
+        imageFiles: string;
+        docFiles: string;
+        moduleFiles: string;
       };
     };
     dork: {
@@ -220,6 +231,11 @@ export interface AppTranslationSchema {
         copyPaths: string;
         copyUrls: string;
         resetBasePath: string;
+        patchAuth: string;
+      };
+      confirmPatch: {
+        title: string;
+        description: string;
       };
       labels: {
         router: string;
@@ -314,6 +330,7 @@ export interface AppTranslationSchema {
         bypassDescription: string;
         bypassInputPlaceholder: string;
         bypassEmpty: string;
+        credentialsHint: string;
       };
       validation: {
         nameRequired: string;
@@ -459,10 +476,16 @@ export interface AppTranslationSchema {
           namePlaceholder: string;
           codePlaceholder: string;
           defaultCodeTemplate: string;
+          urlPatternLabel: string;
+          urlPatternTooltip: string;
+          urlPatternExtra: string;
         };
         validation: {
           nameRequired: string;
           codeRequired: string;
+        };
+        errors: {
+          cspBlocked: string;
         };
       };
       presets: {
@@ -560,6 +583,234 @@ export interface AppTranslationSchema {
       diff: string;
       misc: string;
       reportWriter: string;
+    };
+    packetReplay: {
+      history: {
+        renderLimit: string;
+        forward: string;
+        drop: string;
+        pauseCapture: string;
+        startCapture: string;
+        stopIntercept: string;
+        startIntercept: string;
+        forwardAll: string;
+        dropAll: string;
+      };
+      request: {
+        nothingToCopy: string;
+        undo: string;
+        redo: string;
+        copyToClipboard: string;
+        toggleSplitView: string;
+        searchPlaceholder: string;
+      };
+      response: {
+        copiedFull: string;
+        downloadStarted: string;
+        savedFull: string;
+        downloadBody: string;
+        copyFull: string;
+        saveFull: string;
+        searchPlaceholder: string;
+      };
+    };
+    apiTester: {
+      noBodyHint: string;
+      sending: string;
+      requestError: string;
+      emptyHint: string;
+      history: {
+        empty: string;
+      };
+      tooltips: {
+        hideHistory: string;
+        showHistory: string;
+      };
+      messages: {
+        urlRequired: string;
+        backgroundDisconnected: string;
+        requestTimeout: string;
+        curlParsed: string;
+        copiedBody: string;
+      };
+    };
+    misc: {
+      title: string;
+      tools: {
+        deduplicate: string;
+        domain: string;
+        email: string;
+        regex: string;
+        ip: string;
+      };
+      deduplicate: {
+        ignoreCase: string;
+        ignoreEmpty: string;
+        sortOutput: string;
+        dedupe: string;
+        inputRequired: string;
+        noValidData: string;
+        stats: string;
+        inputLabel: string;
+        outputLabel: string;
+        inputPlaceholder: string;
+        outputPlaceholder: string;
+      };
+      domain: {
+        includeSubdomain: string;
+        deduplicate: string;
+        sort: string;
+        inputRequired: string;
+        noResults: string;
+        countLabel: string;
+        inputLabel: string;
+        outputLabel: string;
+        inputPlaceholder: string;
+        outputPlaceholder: string;
+      };
+      email: {
+        lowerCase: string;
+        deduplicate: string;
+        sort: string;
+        inputRequired: string;
+        noResults: string;
+        countLabel: string;
+        inputLabel: string;
+        outputLabel: string;
+        inputPlaceholder: string;
+        outputPlaceholder: string;
+      };
+      regex: {
+        presets: {
+          custom: string;
+          ip: string;
+          phone: string;
+          idCard: string;
+          mac: string;
+        };
+        selectPreset: string;
+        patternPlaceholder: string;
+        deduplicate: string;
+        inputRequired: string;
+        patternRequired: string;
+        noMatches: string;
+        invalidRegex: string;
+        countLabel: string;
+        inputLabel: string;
+        outputLabel: string;
+        inputPlaceholder: string;
+        outputPlaceholder: string;
+      };
+      ip: {
+        tabs: {
+          all: string;
+          public: string;
+          private: string;
+          invalid: string;
+        };
+        inputRequired: string;
+        noResults: string;
+        inputLabel: string;
+        outputLabel: string;
+        inputPlaceholder: string;
+        outputPlaceholder: string;
+      };
+    };
+    diff: {
+      subtitle: string;
+      mode: {
+        chars: string;
+        words: string;
+        lines: string;
+      };
+      ignoreWhitespace: string;
+      swap: string;
+      compare: string;
+      leftLabel: string;
+      rightLabel: string;
+      leftPlaceholder: string;
+      rightPlaceholder: string;
+      resultLabel: string;
+      copyDiff: string;
+      emptyHint: string;
+      identicalHint: string;
+    };
+    codec: {
+      categories: {
+        encoding: string;
+        hash: string;
+        symmetric: string;
+        asymmetric: string;
+        jwt: string;
+      };
+      ivOptional: string;
+      inputPlaceholder: string;
+      outputPlaceholder: string;
+      generateHash: string;
+      encode: string;
+      decode: string;
+      swapInputOutput: string;
+      copyOutput: string;
+      errors: {
+        secretKeyRequired: string;
+      };
+      jwt: {
+        signatureVerified: string;
+        signatureFailed: string;
+        skippedVerification: string;
+      };
+    };
+    dataGenerator: {
+      subtitle: string;
+      rowsUnit: string;
+      generate: string;
+      copyAll: string;
+      emptyHint: string;
+      columns: {
+        type: string;
+        data: string;
+        actions: string;
+      };
+      messages: {
+        copiedAll: string;
+      };
+      categories: {
+        person: string;
+        network: string;
+        finance: string;
+        other: string;
+      };
+      generators: {
+        idCard: string;
+        name: string;
+        phone: string;
+        email: string;
+        username: string;
+        password: string;
+        address: string;
+        company: string;
+        ipv4: string;
+        ipv4Private: string;
+        ipv6: string;
+        mac: string;
+        url: string;
+        domain: string;
+        userAgent: string;
+        port: string;
+        bankCard: string;
+        creditCard: string;
+        cvv: string;
+        iban: string;
+        btcAddress: string;
+        ethAddress: string;
+        amount: string;
+        uuid: string;
+        jwt: string;
+        colorHex: string;
+        date: string;
+        datetime: string;
+        lorem: string;
+      };
     };
     vulnerability: {
       layout: {
@@ -840,6 +1091,20 @@ export interface AppTranslationSchema {
           items: Record<string, string>;
         };
       };
+    };
+  };
+  background: {
+    errors: {
+      screenshotNoData: string;
+      tabCreateFailed: string;
+      screenshotFailed: string;
+      screenshotInProgress: string;
+      noUrlsToScreenshot: string;
+      screenshotInProgressClear: string;
+      noUrlsToPlay: string;
+      screenshotInterrupted: string;
+      slideshowOpFailed: string;
+      screenshotOpFailed: string;
     };
   };
   layout: {

@@ -9,8 +9,10 @@ import type {
   HttpMethod,
 } from '@/types/packet';
 
-interface PacketStoreState {
-  /** 所有捕获的数据包 */
+/** 内存中最多保留的数据包数量（拦截模式会捕获所有子资源，不设上限会导致面板内存膨胀） */
+const MAX_PACKETS = 500;
+
+interface PacketStoreState {  /** 所有捕获的数据包 */
   packets: CapturedPacket[];
   /** 当前选中的数据包 ID */
   selectedPacketId: string | null;
@@ -121,7 +123,24 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
   requestSplitView: false,
 
   addPacket: (packet) =>
-    set((state) => ({ packets: [...state.packets, packet] })),
+    set((state) => {
+      if (state.packets.length < MAX_PACKETS) {
+        return { packets: [...state.packets, packet] };
+      }
+      // 超出上限：从最旧开始丢弃（当前选中的包跳过）
+      const removedIds = new Set<string>();
+      const overflow = state.packets.length + 1 - MAX_PACKETS;
+      let remaining = overflow;
+      for (const p of state.packets) {
+        if (remaining <= 0) break;
+        if (p.id === state.selectedPacketId) continue;
+        removedIds.add(p.id);
+        remaining -= 1;
+      }
+      return {
+        packets: state.packets.filter((p) => !removedIds.has(p.id)).concat(packet),
+      };
+    }),
 
   removePacket: (id) =>
     set((state) => ({
@@ -200,9 +219,9 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
     set({ editedResponseRaw: raw }),
 
   applyEditedRequest: () => {
-    const { editedRequestRaw, selectedPacketId, packets } = get();
+    const { editedRequestRaw, selectedPacketId, packets, useHttps } = get();
     if (!editedRequestRaw || !selectedPacketId) return;
-    const parsed = parseRawRequest(editedRequestRaw);
+    const parsed = parseRawRequest(editedRequestRaw, useHttps);
     if (!parsed) return;
     set({
       packets: packets.map((p) =>
@@ -257,8 +276,9 @@ export const usePacketStore = create<PacketStoreState & PacketStoreActions>((set
 /**
  * 解析原始请求文本为 RequestData
  * 格式: METHOD PATH HTTP/x.x\nHeader: Value\n...\n\nbody
+ * @param useHttps 重建 URL 时使用的协议（对应面板上的 HTTPS 开关）
  */
-export function parseRawRequest(raw: string): RequestData | null {
+export function parseRawRequest(raw: string, useHttps = true): RequestData | null {
   try {
     const [headerSection, ...bodyParts] = raw.split('\n\n');
     const body = bodyParts.join('\n\n');
@@ -285,7 +305,7 @@ export function parseRawRequest(raw: string): RequestData | null {
     }
 
     // 重建完整 URL
-    const scheme = 'https';
+    const scheme = useHttps ? 'https' : 'http';
     const url = host ? `${scheme}://${host}${pathPart}` : pathPart;
 
     // 解析 queryString

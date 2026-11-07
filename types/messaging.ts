@@ -151,6 +151,8 @@ export interface SendResponseMessage {
   headers: { name: string; value: string }[];
   body: string;
   duration: number;
+  /** 非致命提示（例如 Cookie 头被浏览器丢弃） */
+  warning?: string;
 }
 
 /** 请求重放失败 */

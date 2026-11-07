@@ -15,6 +15,7 @@ import {
   normalizeUrlScreenshotState,
 } from '@/types/url-screenshot';
 import { urlScreenshotDb } from '@/stores/urlScreenshotDb';
+import i18n from '@/lib/i18n';
 
 export default defineBackground(() => {
   console.log('[Hellcat] Background started', { id: browser.runtime.id });
@@ -23,6 +24,7 @@ export default defineBackground(() => {
     id: string;
     name: string;
     code: string;
+    urlPattern?: string;
   };
 
   let autoInjectScripts: AutoInjectScript[] = [];
@@ -33,6 +35,17 @@ export default defineBackground(() => {
   let urlScreenshotRunToken = 0;
 
   const isInjectableUrl = (url?: string) => Boolean(url && /^https?:\/\//.test(url));
+
+  /** glob 形式的 URL 匹配（* 通配），空模式视为匹配所有页面 */
+  const matchUrlPattern = (pattern: string | undefined, url: string) => {
+    if (!pattern || !pattern.trim()) return true;
+    const escaped = pattern.trim().replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+    try {
+      return new RegExp(`^${escaped}$`, 'i').test(url);
+    } catch {
+      return false;
+    }
+  };
 
   async function loadAutoInjectScripts() {
     if (autoInjectScriptsLoaded) return autoInjectScripts;
@@ -145,6 +158,17 @@ export default defineBackground(() => {
     return new Blob([bytes], { type: mimeType });
   }
 
+  /** UTF-8 安全的 base64 编码（btoa 直接编码非 Latin1 字符会抛异常） */
+  function utf8ToBase64(text: string) {
+    const bytes = new TextEncoder().encode(text);
+    let binary = '';
+    const CHUNK_SIZE = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK_SIZE));
+    }
+    return btoa(binary);
+  }
+
   async function captureTabScreenshotBlob(tabId: number) {
     let attachedByUs = false;
 
@@ -180,7 +204,7 @@ export default defineBackground(() => {
       }) as { data?: string };
 
       if (!screenshot.data) {
-        throw new Error('未获取到截图数据');
+        throw new Error(i18n.t('background.errors.screenshotNoData'));
       }
 
       return base64ToBlob(screenshot.data, 'image/png');
@@ -233,7 +257,7 @@ export default defineBackground(() => {
         const tab = await browser.tabs.create({ url: currentUrl, active: false });
         tabId = tab.id ?? null;
         if (!tabId) {
-          throw new Error('创建标签页失败');
+          throw new Error(i18n.t('background.errors.tabCreateFailed'));
         }
 
         await waitForTabLoad(tabId, 20000);
@@ -255,7 +279,7 @@ export default defineBackground(() => {
         capturedCount += 1;
       } catch (err) {
         failedCount += 1;
-        lastError = err instanceof Error ? err.message : '截图失败';
+        lastError = err instanceof Error ? err.message : i18n.t('background.errors.screenshotFailed');
         console.warn(`[Hellcat] Screenshot failed for ${currentUrl}:`, err);
       } finally {
         if (tabId) {
@@ -306,7 +330,7 @@ export default defineBackground(() => {
 
   async function startUrlScreenshot(urls: string[]) {
     if (urlScreenshotState.running) {
-      throw new Error('截图任务进行中');
+      throw new Error(i18n.t('background.errors.screenshotInProgress'));
     }
 
     const normalizedUrls = urls
@@ -314,7 +338,7 @@ export default defineBackground(() => {
       .filter((item) => /^https?:\/\//i.test(item));
 
     if (normalizedUrls.length === 0) {
-      throw new Error('没有可截图的 URL');
+      throw new Error(i18n.t('background.errors.noUrlsToScreenshot'));
     }
 
     const sessionId = crypto.randomUUID();
@@ -347,7 +371,7 @@ export default defineBackground(() => {
 
   async function resetUrlScreenshotState() {
     if (urlScreenshotState.running) {
-      throw new Error('截图任务进行中，无法清空结果');
+      throw new Error(i18n.t('background.errors.screenshotInProgressClear'));
     }
 
     urlScreenshotAbortRequested = false;
@@ -449,7 +473,7 @@ export default defineBackground(() => {
       .filter((item) => /^https?:\/\//i.test(item));
 
     if (normalizedUrls.length === 0) {
-      throw new Error('没有可播放的 URL');
+      throw new Error(i18n.t('background.errors.noUrlsToPlay'));
     }
 
     await clearUrlSlideshowAlarm();
@@ -523,7 +547,7 @@ export default defineBackground(() => {
           running: false,
           stopping: false,
           currentUrl: '',
-          lastError: urlScreenshotState.lastError || '扩展已重启，截图任务未继续执行',
+          lastError: urlScreenshotState.lastError || i18n.t('background.errors.screenshotInterrupted'),
           updatedAt: Date.now(),
         });
       }
@@ -569,14 +593,31 @@ export default defineBackground(() => {
   });
 
   // ─── 自动注入：页面开始加载时尽早注入启用的脚本 ───────────────
+  // 同一 tab 短时间内多次触发 loading（重定向链）时节流去重
+  const lastAutoInjectAtByTab = new Map<number, number>();
+  const AUTO_INJECT_THROTTLE_MS = 300;
+
+  browser.tabs.onRemoved.addListener((tabId) => {
+    lastAutoInjectAtByTab.delete(tabId);
+  });
+
   browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (changeInfo.status !== 'loading') return;
     if (!isInjectableUrl(tab.url)) return;
 
+    const now = Date.now();
+    const lastAt = lastAutoInjectAtByTab.get(tabId) ?? 0;
+    if (now - lastAt < AUTO_INJECT_THROTTLE_MS) return;
+    lastAutoInjectAtByTab.set(tabId, now);
+
     const scripts = autoInjectScriptsLoaded ? autoInjectScripts : await loadAutoInjectScripts();
     if (scripts.length === 0) return;
 
-    for (const script of scripts) {
+    // 仅注入 URL 模式匹配的脚本（空模式 = 所有页面）
+    const matchedScripts = scripts.filter((script) => matchUrlPattern(script.urlPattern, tab.url!));
+    if (matchedScripts.length === 0) return;
+
+    for (const script of matchedScripts) {
       try {
         await browser.scripting.executeScript({
           target: { tabId },
@@ -663,7 +704,7 @@ export default defineBackground(() => {
         } catch (err) {
           sendResponse({
             success: false,
-            error: err instanceof Error ? err.message : 'URL 幻灯片操作失败',
+            error: err instanceof Error ? err.message : i18n.t('background.errors.slideshowOpFailed'),
             state: urlSlideshowState,
           });
         }
@@ -699,7 +740,7 @@ export default defineBackground(() => {
         } catch (err) {
           sendResponse({
             success: false,
-            error: err instanceof Error ? err.message : 'URL 截图操作失败',
+            error: err instanceof Error ? err.message : i18n.t('background.errors.screenshotOpFailed'),
             state: urlScreenshotState,
           });
         }
@@ -1359,7 +1400,8 @@ export default defineBackground(() => {
         method,
         url,
         headers: cdpHeaders,
-        postData: body ? btoa(body) : undefined,
+        // CDP 的 postData 要求 base64 编码，必须先做 UTF-8 转换
+        postData: body ? utf8ToBase64(body) : undefined,
       });
     } catch (err) {
       console.error(`[Hellcat] Failed to forward modified request ${requestId}:`, err);
@@ -1396,10 +1438,16 @@ export default defineBackground(() => {
     try {
       // 构造 headers
       const headers = new Headers();
+      let hasDroppedCookie = false;
       for (const h of msg.headers) {
         // 跳过浏览器自动管理的 headers
         const lower = h.name.toLowerCase();
         if (['host', 'connection', 'content-length'].includes(lower)) continue;
+        // Cookie 是 fetch 的 forbidden header，会被浏览器静默丢弃，需要向用户提示
+        if (lower === 'cookie') {
+          hasDroppedCookie = true;
+          continue;
+        }
         try {
           headers.set(h.name, h.value);
         } catch { /* skip invalid headers */ }
@@ -1429,6 +1477,7 @@ export default defineBackground(() => {
         headers: respHeaders,
         body,
         duration,
+        warning: hasDroppedCookie ? i18n.t('common.replay.cookieDroppedWarning') : undefined,
       });
     } catch (err) {
       port.postMessage({

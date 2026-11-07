@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Input, Select, Button, message, Divider, Tooltip } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   SendOutlined,
   HistoryOutlined,
@@ -40,10 +41,123 @@ const DEFAULT_HEADERS: KeyValueItem[] = [
   { id: genKvId(), enabled: true, key: '', value: '', description: '' },
 ];
 
+const REQUEST_TIMEOUT_MS = 30000;
+
+/** 构造 multipart/form-data 请求体（字段值均为文本） */
+function buildMultipartBody(items: KeyValueItem[]): { body: string; contentType: string } {
+  const boundary = `----HellcatFormBoundary${Date.now().toString(16)}${Math.random().toString(16).slice(2, 8)}`;
+  const parts: string[] = [];
+  for (const item of items) {
+    if (!item.enabled || !item.key) continue;
+    parts.push(
+      `--${boundary}\r\nContent-Disposition: form-data; name="${item.key}"\r\n\r\n${item.value}\r\n`,
+    );
+  }
+  parts.push(`--${boundary}--\r\n`);
+  return {
+    body: parts.join(''),
+    contentType: `multipart/form-data; boundary=${boundary}`,
+  };
+}
+
+/** 将 shell 词法单元切分（支持单引号、双引号与反斜杠转义） */
+function tokenizeShell(input: string): string[] {
+  const tokens: string[] = [];
+  let current = '';
+  let hasToken = false;
+  let quote: '"' | "'" | null = null;
+  let escaped = false;
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (escaped) {
+      current += quote === "'" ? ch : (ch === 'n' ? '\n' : ch);
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\' && quote !== "'") {
+      escaped = true;
+      hasToken = true;
+      continue;
+    }
+    if (quote) {
+      if (ch === quote) quote = null;
+      else current += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      hasToken = true;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (hasToken) {
+        tokens.push(current);
+        current = '';
+        hasToken = false;
+      }
+      continue;
+    }
+    current += ch;
+    hasToken = true;
+  }
+  if (hasToken) tokens.push(current);
+  return tokens;
+}
+
+interface ParsedCurl {
+  method?: HttpMethod;
+  url?: string;
+  headers: { name: string; value: string }[];
+  body?: string;
+}
+
+/** 解析常用 cURL 命令（-X/-H/--data/--data-raw/-u/URL） */
+export function parseCurlCommand(input: string): ParsedCurl | null {
+  const trimmed = input.trim().replace(/\\\r?\n/g, ' ');
+  if (!/^curl\b/i.test(trimmed)) return null;
+
+  const tokens = tokenizeShell(trimmed);
+  const parsed: ParsedCurl = { headers: [] };
+  const dataParts: string[] = [];
+
+  for (let i = 1; i < tokens.length; i++) {
+    const token = tokens[i];
+    const lower = token.toLowerCase();
+    if (lower === '-x' || lower === '--request') {
+      parsed.method = (tokens[++i] || '').toUpperCase() as HttpMethod;
+    } else if (lower === '-h' || lower === '--header') {
+      const raw = tokens[++i] || '';
+      const colonIdx = raw.indexOf(':');
+      if (colonIdx > 0) {
+        parsed.headers.push({ name: raw.slice(0, colonIdx).trim(), value: raw.slice(colonIdx + 1).trim() });
+      }
+    } else if (lower === '-d' || lower === '--data' || lower === '--data-raw' || lower === '--data-ascii') {
+      dataParts.push(tokens[++i] || '');
+    } else if (lower === '-u' || lower === '--user') {
+      const credential = tokens[++i] || '';
+      try {
+        parsed.headers.push({ name: 'Authorization', value: `Basic ${btoa(credential)}` });
+      } catch { /* 非 Latin1 凭据跳过 */ }
+    } else if (token === '-' || lower === '--compressed' || lower === '-s' || lower === '--silent'
+      || lower === '-k' || lower === '--insecure' || lower === '-l' || lower === '--location') {
+      continue;
+    } else if (!token.startsWith('-') && !parsed.url) {
+      parsed.url = token;
+    }
+  }
+
+  if (dataParts.length > 0) parsed.body = dataParts.join('&');
+  if (parsed.method === undefined && parsed.body !== undefined) parsed.method = 'POST';
+  if (!parsed.url) return null;
+  return parsed;
+}
+
 /**
  * API 测试模块主布局
  */
 export const ApiTesterLayout: React.FC = () => {
+  const { t } = useTranslation();
   // 请求配置状态
   const [method, setMethod] = useState<HttpMethod>('GET');
   const [url, setUrl] = useState('');
@@ -66,6 +180,7 @@ export const ApiTesterLayout: React.FC = () => {
   // Background port
   const portRef = useRef<RuntimePort | null>(null);
   const pendingIdRef = useRef<string | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 建立与 background 的长连接
   useEffect(() => {
@@ -96,7 +211,10 @@ export const ApiTesterLayout: React.FC = () => {
     });
 
     port.onDisconnect.addListener(() => { portRef.current = null; });
-    return () => { try { port.disconnect(); } catch { /* ignore */ } };
+    return () => {
+      try { port.disconnect(); } catch { /* ignore */ }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, []);
 
   /** 构建最终 URL（合并 params） */
@@ -113,45 +231,39 @@ export const ApiTesterLayout: React.FC = () => {
     }
   }, [url, params]);
 
-  /** 构建请求体 */
-  const buildBody = useCallback((): string | undefined => {
-    if (['GET', 'HEAD'].includes(method)) return undefined;
-    if (bodyType === 'none') return undefined;
+  /** 构建请求体；form-data 走真正的 multipart 编码 */
+  const buildBody = useCallback((): { body?: string; contentType?: string } => {
+    if (['GET', 'HEAD'].includes(method)) return {};
+    if (bodyType === 'none') return {};
     if (bodyType === 'form-urlencoded') {
       const sp = new URLSearchParams();
       bodyFormItems.filter((i) => i.enabled && i.key).forEach((i) => sp.set(i.key, i.value));
-      return sp.toString();
+      return { body: sp.toString() };
     }
     if (bodyType === 'form-data') {
-      // 简化处理：转为 JSON 传输
-      const obj: Record<string, string> = {};
-      bodyFormItems.filter((i) => i.enabled && i.key).forEach((i) => { obj[i.key] = i.value; });
-      return JSON.stringify(obj);
+      return buildMultipartBody(bodyFormItems);
     }
-    return bodyRaw || undefined;
+    return { body: bodyRaw || undefined };
   }, [method, bodyType, bodyFormItems, bodyRaw]);
 
-  /** 构建 headers */
-  const buildHeaders = useCallback(() => {
+  /** 构建 headers（可由请求体注入对应的 Content-Type） */
+  const buildHeaders = useCallback((bodyContentType?: string) => {
     const result = headers.filter((h) => h.enabled && h.key).map((h) => ({ name: h.key, value: h.value }));
     // 自动添加 Content-Type
-    if (!['GET', 'HEAD'].includes(method) && bodyType !== 'none') {
+    if (!['GET', 'HEAD'].includes(method) && bodyContentType) {
       const hasContentType = result.some((h) => h.name.toLowerCase() === 'content-type');
       if (!hasContentType) {
-        if (bodyType === 'form-urlencoded') result.push({ name: 'Content-Type', value: 'application/x-www-form-urlencoded' });
-        else if (bodyType === 'raw-json') result.push({ name: 'Content-Type', value: 'application/json' });
-        else if (bodyType === 'raw-xml') result.push({ name: 'Content-Type', value: 'application/xml' });
-        else if (bodyType === 'raw-text') result.push({ name: 'Content-Type', value: 'text/plain' });
+        result.push({ name: 'Content-Type', value: bodyContentType });
       }
     }
     return result;
-  }, [headers, method, bodyType]);
+  }, [headers, method]);
 
   /** 发送请求 */
   const handleSend = useCallback(() => {
     const finalUrl = buildFinalUrl();
-    if (!finalUrl) { message.warning('请输入 URL'); return; }
-    if (!portRef.current) { message.error('未连接到 Background，请检查扩展状态'); return; }
+    if (!finalUrl) { message.warning(t('devtools.apiTester.messages.urlRequired')); return; }
+    if (!portRef.current) { message.error(t('devtools.apiTester.messages.backgroundDisconnected')); return; }
 
     const packetId = `api_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     pendingIdRef.current = packetId;
@@ -164,15 +276,26 @@ export const ApiTesterLayout: React.FC = () => {
       id: packetId, method, url: finalUrl, timestamp: Date.now(),
     }, ...prev].slice(0, 50));
 
+    // 超时兜底：Background 可能已被回收或断连
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      if (pendingIdRef.current !== packetId) return;
+      pendingIdRef.current = null;
+      setLoading(false);
+      setError(t('devtools.apiTester.messages.requestTimeout'));
+    }, REQUEST_TIMEOUT_MS);
+
+    const bodyInfo = buildBody();
+
     portRef.current.postMessage({
       type: 'SEND_REQUEST',
       packetId,
       method,
       url: finalUrl,
-      headers: buildHeaders(),
-      body: buildBody(),
+      headers: buildHeaders(bodyInfo.contentType),
+      body: bodyInfo.body,
     });
-  }, [buildFinalUrl, buildHeaders, buildBody, method]);
+  }, [buildFinalUrl, buildHeaders, buildBody, method, t]);
 
   /** 从历史加载 */
   const loadFromHistory = useCallback((entry: HistoryEntry) => {
@@ -191,12 +314,52 @@ export const ApiTesterLayout: React.FC = () => {
     setShowHistory(false);
   }, []);
 
+  /** 输入内容支持直接粘贴 cURL 命令，自动解析填充 */
+  const handleUrlChange = useCallback((value: string) => {
+    setUrl(value);
+    if (!/^curl\s/i.test(value.trim())) return;
+
+    const parsed = parseCurlCommand(value);
+    if (!parsed) return;
+
+    try {
+      const urlObj = new URL(parsed.url!);
+      setUrl(`${urlObj.origin}${urlObj.pathname}`);
+      const qParams: KeyValueItem[] = [];
+      urlObj.searchParams.forEach((v, k) => qParams.push({ id: genKvId(), enabled: true, key: k, value: v }));
+      if (qParams.length === 0) qParams.push(DEFAULT_PARAMS[0]);
+      setParams(qParams);
+    } catch {
+      setUrl(parsed.url!);
+    }
+
+    if (parsed.method) setMethod(parsed.method);
+    if (parsed.headers.length > 0) {
+      setHeaders([
+        ...parsed.headers.map((h) => ({ id: genKvId(), enabled: true, key: h.name, value: h.value, description: '' })),
+        { id: genKvId(), enabled: true, key: '', value: '', description: '' },
+      ]);
+    }
+
+    if (parsed.body !== undefined) {
+      setBodyRaw(parsed.body);
+      setBodyType(parsed.body.trim().startsWith('{') ? 'raw-json' : 'raw-text');
+      if (parsed.method === 'POST' && parsed.headers.some((h) => h.name.toLowerCase() === 'content-type')) {
+        const ct = parsed.headers.find((h) => h.name.toLowerCase() === 'content-type')!.value;
+        if (ct.includes('form-urlencoded')) setBodyType('form-urlencoded');
+        else if (ct.includes('multipart/form-data')) setBodyType('form-data');
+        else if (ct.includes('json')) setBodyType('raw-json');
+      }
+    }
+    message.success(t('devtools.apiTester.messages.curlParsed'));
+  }, [t]);
+
   return (
     <div className="flex flex-col h-full bg-white">
       {/* 标题栏 */}
       <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-3 py-2 shrink-0">
         <span className="text-sm font-bold tracking-wide text-gray-600">API TESTER</span>
-        <Tooltip title={showHistory ? '隐藏历史' : '显示历史'}>
+        <Tooltip title={showHistory ? t('devtools.apiTester.tooltips.hideHistory') : t('devtools.apiTester.tooltips.showHistory')}>
           <Button type="text" icon={<HistoryOutlined />} onClick={() => setShowHistory(!showHistory)}
             className={showHistory ? 'text-blue-500' : 'text-gray-400'} />
         </Tooltip>
@@ -217,7 +380,7 @@ export const ApiTesterLayout: React.FC = () => {
         <Input
           placeholder="Enter URL or paste cURL"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e) => handleUrlChange(e.target.value)}
           onPressEnter={handleSend}
           className="flex-1 text-sm font-mono"
         />
@@ -242,7 +405,7 @@ export const ApiTesterLayout: React.FC = () => {
                 onClick={() => setHistory([])} className="text-gray-400" />
             </div>
             {history.length === 0 ? (
-              <div className="py-4 text-center text-xs text-gray-400">暂无历史</div>
+              <div className="py-4 text-center text-xs text-gray-400">{t('devtools.apiTester.history.empty')}</div>
             ) : history.map((entry) => (
               <div key={entry.id}
                 className="cursor-pointer border-b border-gray-100 px-3 py-2 text-xs hover:bg-blue-50"

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePacketStore } from '@/stores/usePacketStore';
 import { PanelHeader } from '../shared/PanelHeader';
 import { ContentTabs } from '../shared/ContentTabs';
@@ -14,6 +15,7 @@ const RESPONSE_TABS: ResponseViewTab[] = ['Pretty', 'Raw', 'Hex', 'Json', 'Previ
  * 展示选中数据包的响应详情，支持编辑
  */
 export const ResponsePanel: React.FC = () => {
+  const { t } = useTranslation();
   const {
     responseViewTab,
     setResponseViewTab,
@@ -67,7 +69,7 @@ export const ResponsePanel: React.FC = () => {
         onChange={handleChange}
       />
       <SearchBar
-        placeholder="Search in response..."
+        placeholder={t('devtools.packetReplay.response.searchPlaceholder')}
         value={responseSearchKeyword}
         onChange={setResponseSearchKeyword}
       />

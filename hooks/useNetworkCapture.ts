@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { message } from 'antd';
 import { nanoid } from 'nanoid';
 import { usePacketStore, parseRawRequest } from '@/stores/usePacketStore';
 import type { CapturedPacket, HttpMethod, HttpHeader } from '@/types/packet';
@@ -178,6 +179,9 @@ export function useNetworkCapture() {
             msg.headers.find((h) => h.name.toLowerCase() === 'content-type')?.value ?? '',
           bodySize: msg.body.length,
         });
+        if (msg.warning) {
+          message.warning(msg.warning);
+        }
       } else if (msg.type === 'SEND_ERROR') {
         const store = usePacketStore.getState();
         store.updatePacketStatus(msg.packetId, 'error');
@@ -304,8 +308,8 @@ export function useNetworkCapture() {
       const updatedPacket = usePacketStore.getState().getSelectedPacket();
       req = updatedPacket?.request ?? packet.request;
     } else if (store.editedRequestRaw) {
-      // 无选中包但有粘贴/编辑的原始请求文本：直接解析
-      const parsed = parseRawRequest(store.editedRequestRaw);
+      // 无选中包但有粘贴/编辑的原始请求文本：直接解析（按当前 HTTPS 开关决定协议）
+      const parsed = parseRawRequest(store.editedRequestRaw, store.useHttps);
       if (!parsed) return;
       req = parsed;
     } else {

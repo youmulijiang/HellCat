@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, Space, Tooltip, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   DownloadOutlined,
   CopyOutlined,
@@ -12,6 +13,7 @@ import { usePacketStore } from '@/stores/usePacketStore';
  * 包含下载、复制、保存操作
  */
 export const ResponseToolbar: React.FC = () => {
+  const { t } = useTranslation();
   const { getSelectedPacket } = usePacketStore();
   const selectedPacket = getSelectedPacket();
   const response = selectedPacket?.response;
@@ -22,7 +24,7 @@ export const ResponseToolbar: React.FC = () => {
     const raw = formatFullResponse(response);
     try {
       await navigator.clipboard.writeText(raw);
-      message.success('已复制响应报文到剪贴板');
+      message.success(t('devtools.packetReplay.response.copiedFull'));
     } catch {
       // fallback
       const textarea = document.createElement('textarea');
@@ -31,7 +33,7 @@ export const ResponseToolbar: React.FC = () => {
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      message.success('已复制响应报文到剪贴板');
+      message.success(t('devtools.packetReplay.response.copiedFull'));
     }
   };
 
@@ -49,7 +51,7 @@ export const ResponseToolbar: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    message.success('响应体已开始下载');
+    message.success(t('devtools.packetReplay.response.downloadStarted'));
   };
 
   /** 保存完整响应报文（含 headers） */
@@ -65,13 +67,13 @@ export const ResponseToolbar: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    message.success('完整响应报文已保存');
+    message.success(t('devtools.packetReplay.response.savedFull'));
   };
 
   const actions = [
-    { icon: <DownloadOutlined />, title: '下载响应体', onClick: handleDownload },
-    { icon: <CopyOutlined />, title: '复制响应报文', onClick: handleCopy },
-    { icon: <SaveOutlined />, title: '保存完整报文', onClick: handleSave },
+    { icon: <DownloadOutlined />, title: t('devtools.packetReplay.response.downloadBody'), onClick: handleDownload },
+    { icon: <CopyOutlined />, title: t('devtools.packetReplay.response.copyFull'), onClick: handleCopy },
+    { icon: <SaveOutlined />, title: t('devtools.packetReplay.response.saveFull'), onClick: handleSave },
   ];
 
   return (

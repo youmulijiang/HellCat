@@ -7,6 +7,8 @@ export interface InjectScript {
   code: string;
   /** 是否启用注入 */
   enabled: boolean;
+  /** URL 匹配模式（glob，如 *://*.example.com/*）；为空表示所有 http(s) 页面 */
+  urlPattern?: string;
   /** 创建时间 */
   createdAt: number;
 }

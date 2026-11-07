@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { Input, Checkbox, Button } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 
 export interface KeyValueItem {
@@ -34,6 +35,7 @@ export const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
   keyPlaceholder = 'Key',
   valuePlaceholder = 'Value',
 }) => {
+  const { t } = useTranslation();
   const updateItem = useCallback((id: string, field: keyof KeyValueItem, value: unknown) => {
     onChange(items.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
   }, [items, onChange]);
@@ -100,7 +102,7 @@ export const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
       {/* 添加按钮 */}
       <div className="px-1 py-1">
         <Button type="dashed" icon={<PlusOutlined />} onClick={addItem} className="w-full text-sm">
-          添加
+          {t('common.actions.add')}
         </Button>
       </div>
     </div>

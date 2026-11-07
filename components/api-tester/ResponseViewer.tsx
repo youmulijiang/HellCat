@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Tabs, Tag, Empty, Button, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { CopyOutlined } from '@ant-design/icons';
 
 export interface ApiResponse {
@@ -47,6 +48,7 @@ function tryFormatJson(text: string): { formatted: string; isJson: boolean } {
  * 响应查看器 — 展示状态码、耗时、大小、Body（Pretty/Raw）、Headers
  */
 export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loading, error }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('body');
 
   const formattedBody = useMemo(() => {
@@ -59,7 +61,7 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
       <div className="flex items-center justify-center h-full text-gray-400 text-sm">
         <div className="flex flex-col items-center gap-2">
           <div className="animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full" />
-          <span>Sending request...</span>
+          <span>{t('devtools.apiTester.sending')}</span>
         </div>
       </div>
     );
@@ -70,7 +72,7 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
       <div className="flex items-center justify-center h-full p-4 text-sm text-red-500">
         <div className="text-center">
           <div className="text-lg mb-2">✕</div>
-          <div className="font-bold mb-1">Request Error</div>
+          <div className="font-bold mb-1">{t('devtools.apiTester.requestError')}</div>
           <div className="text-red-400">{error}</div>
         </div>
       </div>
@@ -80,14 +82,18 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
   if (!response) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Empty description={<span className="text-gray-400 text-sm">点击 Send 发送请求后查看响应</span>} />
+        <Empty description={<span className="text-gray-400 text-sm">{t('devtools.apiTester.emptyHint')}</span>} />
       </div>
     );
   }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(response.body);
-    message.success('已复制响应体');
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(response.body);
+      message.success(t('devtools.apiTester.messages.copiedBody'));
+    } catch {
+      message.error(t('common.feedback.copyFailed'));
+    }
   };
 
   const tabItems = [

@@ -233,12 +233,12 @@ export default defineUnlistedScript(() => {
     return result;
   }
 
-  // ======== 完整分析 ========
+  // ======== 完整分析（只读，不做任何修改） ========
 
-  function performFullAnalysis() {
+  function performFullAnalysis(modifiedRoutes: { path: string; name: string }[] = []) {
     const result: any = {
       vueDetected: false, vueVersion: null, routerDetected: false,
-      modifiedRoutes: [], allRoutes: [], routerBase: '', currentPath: window.location.pathname,
+      modifiedRoutes, allRoutes: [], routerBase: '', currentPath: window.location.pathname,
       pageAnalysis: { detectedBasePath: '', commonPrefixes: [] },
     };
     try {
@@ -252,8 +252,6 @@ export default defineUnlistedScript(() => {
       result.vueVersion = getVueVersion(vueRoot);
       result.routerBase = extractRouterBase(router);
       result.pageAnalysis = analyzePageLinks();
-      result.modifiedRoutes = patchAllRouteAuth(router);
-      patchRouterGuards(router);
       result.allRoutes = listAllRoutes(router).map((r) => ({
         name: r.name || '', path: r.path || '', meta: simplifyMeta(r.meta),
       }));
@@ -261,6 +259,21 @@ export default defineUnlistedScript(() => {
       result.error = e?.toString?.() || 'Unknown error';
     }
     return result;
+  }
+
+  /**
+   * 显式执行鉴权绕过：修改 auth meta + 清空路由守卫，然后回传更新后的分析结果。
+   * 检测阶段不会调用本函数，必须由用户在面板中主动触发。
+   */
+  function patchAuthAndReport() {
+    let modified: { path: string; name: string }[] = [];
+    const vueRoot = findVueRoot(document.body);
+    const router = vueRoot ? findVueRouter(vueRoot) : null;
+    if (router) {
+      modified = patchAllRouteAuth(router);
+      patchRouterGuards(router);
+    }
+    sendRouterResult(performFullAnalysis(modified));
   }
 
   // ======== 延迟检测 ========
@@ -286,6 +299,18 @@ export default defineUnlistedScript(() => {
   // ======== 入口 ========
 
   try {
+    // 监听显式的鉴权绕过命令（脚本注入后常驻页面上下文）
+    window.addEventListener('message', (event) => {
+      if (event.source !== window) return;
+      if (event.data?.type === 'VUE_PATCH_AUTH') {
+        try {
+          patchAuthAndReport();
+        } catch (e: any) {
+          sendError(e?.toString?.() || 'Patch auth failed');
+        }
+      }
+    });
+
     const vueRoot = findVueRoot(document.body);
     if (vueRoot) {
       sendDetectionResult({ detected: true, method: 'Immediate detection' });

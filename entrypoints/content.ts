@@ -232,18 +232,24 @@ export default defineContentScript({
           browser.runtime.sendMessage({
             action: 'vueDetectionResult',
             result: detectionResult,
-          });
+          }).catch(() => { /* popup 可能未打开 */ });
         } else if (event.data?.type === 'VUE_ROUTER_ANALYSIS_RESULT') {
           routerAnalysisResult = event.data.result;
           browser.runtime.sendMessage({
             action: 'vueRouterAnalysisResult',
             result: routerAnalysisResult,
-          });
+          }).catch(() => { /* popup 可能未打开 */ });
+        } else if (event.data?.type === 'VUE_PATCH_AUTH_RESULT') {
+          routerAnalysisResult = event.data.result;
+          browser.runtime.sendMessage({
+            action: 'vuePatchResult',
+            result: event.data.result,
+          }).catch(() => { /* popup 可能未打开 */ });
         } else if (event.data?.type === 'VUE_ROUTER_ANALYSIS_ERROR') {
           browser.runtime.sendMessage({
             action: 'vueRouterAnalysisError',
             error: event.data.error,
-          });
+          }).catch(() => { /* popup 可能未打开 */ });
         }
       } catch (e) {
         console.error('[Hellcat] Message relay error:', e);
@@ -263,20 +269,34 @@ export default defineContentScript({
               browser.runtime.sendMessage({
                 action: 'vueRouterAnalysisResult',
                 result: routerAnalysisResult,
-              });
+              }).catch(() => { /* popup 可能未打开 */ });
             } else {
               injectDetector();
             }
             sendResponse({ status: 'analyzing' });
 
+          // 修改路由鉴权 / 清除路由守卫（显式触发，检测阶段不再自动执行）
+          } else if (request.action === 'patchVueAuth') {
+            window.postMessage({ type: 'VUE_PATCH_AUTH' }, '*');
+            sendResponse({ status: 'patching' });
+
           // ========== Inject 模块请求 ==========
           } else if (request.action === 'injectScript') {
             try {
+              // CSP 探测：页面的 script-src 可能阻止内联脚本，无法执行时如实回报
+              const probeKey = '__hellcatCspProbe';
+              const probeWindow = window as unknown as Record<string, unknown>;
+              probeWindow[probeKey] = false;
               const script = document.createElement('script');
-              script.textContent = request.code;
+              script.textContent = `try{window['${probeKey}']=true}catch(e){}\n${request.code}`;
               document.documentElement.appendChild(script);
               script.remove();
-              sendResponse({ status: 'ok' });
+              if (probeWindow[probeKey] === true) {
+                sendResponse({ status: 'ok' });
+              } else {
+                sendResponse({ status: 'error', error: 'csp_blocked' });
+              }
+              delete probeWindow[probeKey];
             } catch (err) {
               sendResponse({ status: 'error', error: err instanceof Error ? err.message : String(err) });
             }
@@ -305,6 +325,9 @@ export default defineContentScript({
             const elements = getFormElements();
             elements.forEach(el => replaceVariablesInElement(el, request.variables));
             sendResponse({ status: 'ok', count: elements.length });
+          } else {
+            // 未知 action：立即回报，避免发送方一直等待响应
+            sendResponse({ status: 'error', error: 'unknown_action' });
           }
         } catch (e) {
           sendResponse({ status: 'error', error: String(e) });

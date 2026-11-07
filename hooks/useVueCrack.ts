@@ -13,6 +13,8 @@ export interface VueCrackState {
   detection: VueDetectionResult | null;
   analysis: VueRouterAnalysisResult | null;
   error: string | null;
+  /** 是否已执行过显式的路由鉴权绕过 */
+  patched: boolean;
 }
 
 export function useVueCrack() {
@@ -22,6 +24,7 @@ export function useVueCrack() {
     detection: null,
     analysis: null,
     error: null,
+    patched: false,
   });
 
   /** 监听 content script 发来的消息 */
@@ -30,7 +33,8 @@ export function useVueCrack() {
       if (message.action === 'vueDetectionResult') {
         const result = message.result;
         if (result.detected) {
-          setState((s) => ({ ...s, status: 'detecting', detection: result }));
+          // 检测到 Vue 即标记成功；路由分析结果稍后到达时再补充 analysis
+          setState((s) => ({ ...s, status: 'detected', detection: result }));
         } else {
           setState((s) => ({ ...s, status: 'not-detected', detection: result }));
         }
@@ -39,6 +43,13 @@ export function useVueCrack() {
           ...s,
           status: 'detected',
           analysis: message.result,
+        }));
+      } else if (message.action === 'vuePatchResult') {
+        setState((s) => ({
+          ...s,
+          status: 'detected',
+          analysis: message.result,
+          patched: true,
         }));
       } else if (
         message.action === 'vueDetectionError' ||
@@ -54,7 +65,7 @@ export function useVueCrack() {
 
   /** 触发检测 */
   const detect = useCallback(async () => {
-    setState({ status: 'detecting', detection: null, analysis: null, error: null });
+    setState({ status: 'detecting', detection: null, analysis: null, error: null, patched: false });
     try {
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
       if (!tab?.id) {
@@ -62,7 +73,25 @@ export function useVueCrack() {
         return;
       }
       await browser.tabs.sendMessage(tab.id, { action: 'detectVue' });
-    } catch (e) {
+    } catch {
+      setState((s) => ({
+        ...s,
+        status: 'error',
+        error: t('popup.vueCrack.errors.pageConnectionFailed'),
+      }));
+    }
+  }, [t]);
+
+  /** 显式修改路由 auth meta 并清空路由守卫（检测阶段不会自动执行） */
+  const patchAuth = useCallback(async () => {
+    try {
+      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) {
+        setState((s) => ({ ...s, status: 'error', error: t('popup.vueCrack.errors.noActiveTab') }));
+        return;
+      }
+      await browser.tabs.sendMessage(tab.id, { action: 'patchVueAuth' });
+    } catch {
       setState((s) => ({
         ...s,
         status: 'error',
@@ -137,6 +166,7 @@ export function useVueCrack() {
     ...state,
     inferredBasePath,
     detect,
+    patchAuth,
     buildFullUrls,
     copyAllPaths,
     copyAllUrls,

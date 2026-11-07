@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { usePacketStore } from '@/stores/usePacketStore';
+import { useTranslation } from 'react-i18next';
 import { HistoryToolbar } from './HistoryToolbar';
 import { HistoryListItem } from './HistoryListItem';
 
@@ -8,11 +9,15 @@ interface HistoryPanelProps {
   onDrop: (packetId: string) => void;
 }
 
+/** 一次最多渲染的条目数，超出部分提示使用过滤缩小范围（大量节点直接渲染会卡死面板） */
+const MAX_RENDERED_ITEMS = 300;
+
 /**
  * 历史面板
  * 左侧面板，展示捕获的数据包列表
  */
 export const HistoryPanel: React.FC<HistoryPanelProps> = ({ onForward, onDrop }) => {
+  const { t } = useTranslation();
   const {
     packets,
     selectedPacketId,
@@ -65,17 +70,27 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ onForward, onDrop })
             No captured packets
           </div>
         ) : (
-          filteredPackets.map((packet) => (
-            <HistoryListItem
-              key={packet.id}
-              packet={packet}
-              isSelected={packet.id === selectedPacketId}
-              onSelect={selectPacket}
-              onToggleStar={toggleStarPacket}
-              onForward={onForward}
-              onDrop={onDrop}
-            />
-          ))
+          <>
+            {filteredPackets.slice(0, MAX_RENDERED_ITEMS).map((packet) => (
+              <HistoryListItem
+                key={packet.id}
+                packet={packet}
+                isSelected={packet.id === selectedPacketId}
+                onSelect={selectPacket}
+                onToggleStar={toggleStarPacket}
+                onForward={onForward}
+                onDrop={onDrop}
+              />
+            ))}
+            {filteredPackets.length > MAX_RENDERED_ITEMS && (
+              <div className="px-3 py-2 text-center text-[10px] text-gray-400">
+                {t('devtools.packetReplay.history.renderLimit', {
+                  shown: MAX_RENDERED_ITEMS,
+                  total: filteredPackets.length,
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

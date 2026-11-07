@@ -5,12 +5,12 @@ import type { InjectScript, InjectVariable } from '@/types/inject';
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-type AutoInjectStorageScript = Pick<InjectScript, 'id' | 'name' | 'code'>;
+type AutoInjectStorageScript = Pick<InjectScript, 'id' | 'name' | 'code' | 'urlPattern'>;
 
 function toAutoInjectStorageScripts(scripts: InjectScript[]): AutoInjectStorageScript[] {
   return scripts
     .filter(s => s.enabled)
-    .map(s => ({ id: s.id, name: s.name, code: s.code }));
+    .map(s => ({ id: s.id, name: s.name, code: s.code, urlPattern: s.urlPattern }));
 }
 
 function isSameAutoInjectScripts(a: AutoInjectStorageScript[] | undefined, b: AutoInjectStorageScript[]) {
@@ -19,6 +19,7 @@ function isSameAutoInjectScripts(a: AutoInjectStorageScript[] | undefined, b: Au
     item.id === b[index]?.id
     && item.name === b[index]?.name
     && item.code === b[index]?.code
+    && item.urlPattern === b[index]?.urlPattern
   ));
 }
 
@@ -78,14 +79,14 @@ export function useInject() {
   }, [loadData]);
 
   // ========== 脚本管理 ==========
-  const addScript = useCallback(async (name: string, code: string) => {
-    const newScript: InjectScript = { id: uid(), name, code, enabled: false, createdAt: Date.now() };
+  const addScript = useCallback(async (name: string, code: string, urlPattern?: string) => {
+    const newScript: InjectScript = { id: uid(), name, code, urlPattern, enabled: false, createdAt: Date.now() };
     await db.scripts.add(newScript);
     const next = [...scriptsRef.current, newScript];
     await setScriptsAndSync(next);
   }, [setScriptsAndSync]);
 
-  const updateScript = useCallback(async (id: string, updates: Partial<Pick<InjectScript, 'name' | 'code' | 'enabled'>>) => {
+  const updateScript = useCallback(async (id: string, updates: Partial<Pick<InjectScript, 'name' | 'code' | 'enabled' | 'urlPattern'>>) => {
     await db.scripts.update(id, updates);
     const next = scriptsRef.current.map(s => s.id === id ? { ...s, ...updates } : s);
     await setScriptsAndSync(next);
@@ -112,7 +113,7 @@ export function useInject() {
     return tab;
   }, []);
 
-  /** 通过 scripting API 直接在页面中执行脚本 */
+  /** 通过 scripting API 直接在页面中执行脚本（带 CSP 探测，被页面 CSP 阻止时如实回报） */
   const executeInPage = useCallback(async (tabId: number, code: string): Promise<{ ok: boolean; error?: string }> => {
     try {
       const results = await browser.scripting.executeScript({
@@ -122,25 +123,37 @@ export function useInject() {
             const parent = document.head || document.documentElement || document.body;
             if (!parent) return false;
 
+            // 先写入 CSP 探针再执行用户代码：页面 CSP 阻止内联脚本时探针不会被置位
+            const probeKey = '__hellcatCspProbe';
+            const probeWindow = window as unknown as Record<string, unknown>;
+            try { delete probeWindow[probeKey]; } catch { /* ignore */ }
+            probeWindow[probeKey] = false;
+
             const el = document.createElement('script');
-            el.textContent = scriptCode;
+            el.textContent = `try{window['${probeKey}']=true}catch(e){}\n${scriptCode}`;
             parent.appendChild(el);
             el.remove();
-            return true;
+
+            const executed = probeWindow[probeKey] === true;
+            delete probeWindow[probeKey];
+            return executed;
           };
 
           try {
-            if (!mountAndRun()) {
+            const executed = mountAndRun();
+            if (!executed) {
+              // 探针未置位：脚本被页面 CSP 阻止；否则说明已执行（延迟挂载场景不再等待）
+              const headReady = Boolean(document.head || document.documentElement || document.body);
+              if (headReady) return { status: 'error', error: 'csp_blocked' };
+
               const observer = new MutationObserver(() => {
                 if (mountAndRun()) observer.disconnect();
               });
-
               observer.observe(document, { childList: true, subtree: true });
               window.addEventListener('DOMContentLoaded', () => {
                 if (mountAndRun()) observer.disconnect();
               }, { once: true });
             }
-
             return { status: 'ok' };
           } catch (e) {
             return { status: 'error', error: String(e) };
@@ -152,7 +165,7 @@ export function useInject() {
       });
       const result = results?.[0]?.result as { status: string; error?: string } | undefined;
       if (result?.status === 'ok') return { ok: true };
-      return { ok: false, error: result?.error || '注入失败' };
+      return { ok: false, error: result?.error || 'csp_blocked' };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }

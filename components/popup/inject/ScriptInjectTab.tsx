@@ -16,8 +16,8 @@ import { PRESET_SCRIPTS } from './presetScripts';
 
 interface Props {
   scripts: InjectScript[];
-  onAdd: (name: string, code: string) => void | Promise<void>;
-  onUpdate: (id: string, updates: Partial<Pick<InjectScript, 'name' | 'code' | 'enabled'>>) => void | Promise<void>;
+  onAdd: (name: string, code: string, urlPattern?: string) => void | Promise<void>;
+  onUpdate: (id: string, updates: Partial<Pick<InjectScript, 'name' | 'code' | 'enabled' | 'urlPattern'>>) => void | Promise<void>;
   onRemove: (id: string) => void | Promise<void>;
   onToggle: (id: string) => void | Promise<void>;
   onInjectAll: () => Promise<{ success: number; failed: number }>;
@@ -72,13 +72,13 @@ export const ScriptInjectTab: React.FC<Props> = ({
     setModalOpen(true);
   };
 
-  const handleSave = async (name: string, code: string) => {
+  const handleSave = async (name: string, code: string, urlPattern?: string) => {
     setSaving(true);
     try {
       if (editingScript) {
-        await onUpdate(editingScript.id, { name, code });
+        await onUpdate(editingScript.id, { name, code, urlPattern });
       } else {
-        await onAdd(name, code);
+        await onAdd(name, code, urlPattern);
       }
       setModalOpen(false);
       message.success(t('common.feedback.saveSuccess'));
@@ -123,6 +123,8 @@ export const ScriptInjectTab: React.FC<Props> = ({
     const result = await onInjectSingle(script.code);
     if (result.ok) {
       message.success(t('popup.inject.script.messages.runSuccess', { name: script.name }));
+    } else if (result.error === 'csp_blocked') {
+      message.error(t('popup.inject.script.errors.cspBlocked'));
     } else {
       message.error(t('popup.inject.script.messages.runFailed', {
         error: result.error || t('common.status.unknown'),

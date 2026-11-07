@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { Button, Checkbox, Space, Tooltip, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   UndoOutlined,
   RedoOutlined,
@@ -18,6 +19,7 @@ interface RequestToolbarProps {
  * 包含 HTTPS 切换、Undo/Redo、Copy、Split View、Send
  */
 export const RequestToolbar: React.FC<RequestToolbarProps> = ({ onSend }) => {
+  const { t } = useTranslation();
   const {
     useHttps,
     toggleHttps,
@@ -40,16 +42,16 @@ export const RequestToolbar: React.FC<RequestToolbarProps> = ({ onSend }) => {
   const handleCopy = useCallback(async () => {
     const content = editedRequestRaw ?? '';
     if (!content) {
-      message.warning('没有可复制的内容');
+      message.warning(t('devtools.packetReplay.request.nothingToCopy'));
       return;
     }
     try {
       await navigator.clipboard.writeText(content);
-      message.success('已复制到剪贴板');
+      message.success(t('common.feedback.copySuccess'));
     } catch {
-      message.error('复制失败');
+      message.error(t('common.feedback.copyFailed'));
     }
-  }, [editedRequestRaw]);
+  }, [editedRequestRaw, t]);
 
   return (
     <Space size={2} className="flex items-center">
@@ -57,7 +59,7 @@ export const RequestToolbar: React.FC<RequestToolbarProps> = ({ onSend }) => {
         <span style={{ fontSize: 12 }}>HTTPS</span>
       </Checkbox>
 
-      <Tooltip title="Undo" mouseEnterDelay={0.5}>
+      <Tooltip title={t('devtools.packetReplay.request.undo')} mouseEnterDelay={0.5}>
         <Button
           type="text"
           size="small"
@@ -66,7 +68,7 @@ export const RequestToolbar: React.FC<RequestToolbarProps> = ({ onSend }) => {
           onClick={undoRequestEdit}
         />
       </Tooltip>
-      <Tooltip title="Redo" mouseEnterDelay={0.5}>
+      <Tooltip title={t('devtools.packetReplay.request.redo')} mouseEnterDelay={0.5}>
         <Button
           type="text"
           size="small"
@@ -76,7 +78,7 @@ export const RequestToolbar: React.FC<RequestToolbarProps> = ({ onSend }) => {
         />
       </Tooltip>
 
-      <Tooltip title="Copy to clipboard" mouseEnterDelay={0.5}>
+      <Tooltip title={t('devtools.packetReplay.request.copyToClipboard')} mouseEnterDelay={0.5}>
         <Button
           type="text"
           size="small"
@@ -84,7 +86,7 @@ export const RequestToolbar: React.FC<RequestToolbarProps> = ({ onSend }) => {
           onClick={handleCopy}
         />
       </Tooltip>
-      <Tooltip title="Toggle split view" mouseEnterDelay={0.5}>
+      <Tooltip title={t('devtools.packetReplay.request.toggleSplitView')} mouseEnterDelay={0.5}>
         <Button
           type="text"
           size="small"
