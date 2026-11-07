@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Change } from 'diff';
 import type { DiffMode } from './DiffLayout';
 
@@ -9,10 +10,12 @@ interface DiffResultViewProps {
 
 /** 差异结果渲染组件 */
 export const DiffResultView: React.FC<DiffResultViewProps> = ({ diffResult, mode }) => {
+  const { t } = useTranslation();
+
   if (!diffResult) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400 text-xs">
-        输入文本后点击「比对」查看差异
+        {t('devtools.diff.emptyHint')}
       </div>
     );
   }
@@ -20,7 +23,7 @@ export const DiffResultView: React.FC<DiffResultViewProps> = ({ diffResult, mode
   if (diffResult.every((p) => !p.added && !p.removed)) {
     return (
       <div className="flex-1 flex items-center justify-center text-green-500 text-xs font-bold">
-        ✓ 两段文本完全相同，无差异
+        ✓ {t('devtools.diff.identicalHint')}
       </div>
     );
   }

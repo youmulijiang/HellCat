@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Input, Select, Button, Space, Tabs, message, Tooltip } from 'antd';
+import { Input, Select, Button, Tabs, message, Tooltip } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   SwapOutlined,
   CopyOutlined,
@@ -16,6 +17,7 @@ const { TextArea } = Input;
  * 编码解码 / 加密解密 模块主布局
  */
 export const CodecLayout: React.FC = () => {
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<CodecCategory>('encoding');
   const [selectedTool, setSelectedTool] = useState('base64');
   const [input, setInput] = useState('');
@@ -54,9 +56,9 @@ export const CodecLayout: React.FC = () => {
     if (!output) return;
     try {
       await navigator.clipboard.writeText(output);
-      message.success('已复制');
+      message.success(t('common.feedback.copySuccess'));
     } catch {
-      message.error('复制失败');
+      message.error(t('common.feedback.copyFailed'));
     }
   };
 
@@ -86,7 +88,7 @@ export const CodecLayout: React.FC = () => {
         onChange={handleCategoryChange}
         size="small"
         className="px-3"
-        items={CODEC_CATEGORIES.map((c) => ({ key: c.key, label: c.label }))}
+        items={CODEC_CATEGORIES.map((c) => ({ key: c.key, label: t(c.labelKey) }))}
       />
 
       {/* 工具选择 + 密钥输入 */}
@@ -96,7 +98,7 @@ export const CodecLayout: React.FC = () => {
           onChange={(v) => { setSelectedTool(v); setOutput(''); }}
           size="small"
           style={{ width: 140 }}
-          options={categoryTools.map((t) => ({ value: t.key, label: t.label }))}
+          options={categoryTools.map((tool) => ({ value: tool.key, label: tool.label }))}
         />
         {currentTool?.needKey && (
           <Input
@@ -107,7 +109,7 @@ export const CodecLayout: React.FC = () => {
         )}
         {currentTool?.needIV && (
           <Input
-            size="small" placeholder="IV (可选)" value={iv}
+            size="small" placeholder={t('devtools.codec.ivOptional')} value={iv}
             onChange={(e) => setIv(e.target.value)}
             style={{ width: 140 }}
           />
@@ -130,31 +132,31 @@ export const CodecLayout: React.FC = () => {
         <div className="flex-1 flex flex-col border-r border-gray-200">
           <div className="px-3 py-1 text-xs text-gray-500 bg-[#fafafa] border-b border-gray-100">Input</div>
           <TextArea value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder="在此输入明文或密文..." className="!flex-1 !border-0 !rounded-none !resize-none font-mono !text-xs" />
+            placeholder={t('devtools.codec.inputPlaceholder')} className="!flex-1 !border-0 !rounded-none !resize-none font-mono !text-xs" />
         </div>
 
         {/* 中间操作栏 */}
         <div className="flex flex-col items-center justify-center gap-2 px-2 bg-[#fafafa]">
-          <Tooltip title={currentTool?.oneWay ? '生成摘要' : '编码/加密'}>
+          <Tooltip title={currentTool?.oneWay ? t('devtools.codec.generateHash') : t('devtools.codec.encode')}>
             <Button type="primary" size="small" icon={<LockOutlined />} onClick={handleEncode}>
               {currentTool?.oneWay ? 'Hash' : 'Encode'}
             </Button>
           </Tooltip>
           {!currentTool?.oneWay && (
-            <Tooltip title="解码/解密">
+            <Tooltip title={t('devtools.codec.decode')}>
               <Button size="small" icon={<UnlockOutlined />} onClick={handleDecode}>Decode</Button>
             </Tooltip>
           )}
-          <Tooltip title="交换输入输出"><Button size="small" icon={<SwapOutlined />} onClick={handleSwap} /></Tooltip>
-          <Tooltip title="复制输出"><Button size="small" icon={<CopyOutlined />} onClick={handleCopyOutput} /></Tooltip>
-          <Tooltip title="清空"><Button size="small" icon={<ClearOutlined />} onClick={() => { setInput(''); setOutput(''); }} /></Tooltip>
+          <Tooltip title={t('devtools.codec.swapInputOutput')}><Button size="small" icon={<SwapOutlined />} onClick={handleSwap} /></Tooltip>
+          <Tooltip title={t('devtools.codec.copyOutput')}><Button size="small" icon={<CopyOutlined />} onClick={handleCopyOutput} /></Tooltip>
+          <Tooltip title={t('common.actions.clear')}><Button size="small" icon={<ClearOutlined />} onClick={() => { setInput(''); setOutput(''); }} /></Tooltip>
         </div>
 
         {/* 输出 */}
         <div className="flex-1 flex flex-col">
           <div className="px-3 py-1 text-xs text-gray-500 bg-[#fafafa] border-b border-gray-100">Output</div>
           <TextArea value={output} readOnly
-            placeholder="结果将显示在此处..." className="!flex-1 !border-0 !rounded-none !resize-none font-mono !text-xs" />
+            placeholder={t('devtools.codec.outputPlaceholder')} className="!flex-1 !border-0 !rounded-none !resize-none font-mono !text-xs" />
         </div>
       </div>
     </div>

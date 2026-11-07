@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Button, Radio, Input, Switch } from 'antd';
+import { Button, Radio, Input, Switch, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   SwapOutlined,
   ClearOutlined,
@@ -18,6 +19,7 @@ export type DiffMode = 'chars' | 'words' | 'lines';
  * 支持字符级 / 单词级 / 行级比对，并高亮显示差异
  */
 export const DiffLayout: React.FC = () => {
+  const { t } = useTranslation();
   const [leftText, setLeftText] = useState('');
   const [rightText, setRightText] = useState('');
   const [mode, setMode] = useState<DiffMode>('lines');
@@ -64,7 +66,7 @@ export const DiffLayout: React.FC = () => {
     return { added, removed, unchanged };
   }, [diffResult]);
 
-  const handleCopyDiff = useCallback(() => {
+  const handleCopyDiff = useCallback(async () => {
     if (!diffResult) return;
     const text = diffResult
       .map((p) => {
@@ -73,53 +75,58 @@ export const DiffLayout: React.FC = () => {
         return `  ${p.value}`;
       })
       .join('');
-    navigator.clipboard.writeText(text);
-  }, [diffResult]);
+    try {
+      await navigator.clipboard.writeText(text);
+      message.success(t('common.feedback.copySuccess'));
+    } catch {
+      message.error(t('common.feedback.copyFailed'));
+    }
+  }, [diffResult, t]);
 
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 bg-gray-50">
         <span className="text-xs font-bold text-gray-600 tracking-wide">DIFF COMPARE</span>
-        <span className="text-[10px] text-gray-400">文本差异比对</span>
+        <span className="text-[10px] text-gray-400">{t('devtools.diff.subtitle')}</span>
       </div>
 
       <div className="flex items-center gap-3 px-3 py-2 border-b border-gray-200 flex-wrap">
         <Radio.Group value={mode} onChange={(e) => { setMode(e.target.value); setCompared(false); }} size="small">
-          <Radio.Button value="chars">字符级</Radio.Button>
-          <Radio.Button value="words">单词级</Radio.Button>
-          <Radio.Button value="lines">行级</Radio.Button>
+          <Radio.Button value="chars">{t('devtools.diff.mode.chars')}</Radio.Button>
+          <Radio.Button value="words">{t('devtools.diff.mode.words')}</Radio.Button>
+          <Radio.Button value="lines">{t('devtools.diff.mode.lines')}</Radio.Button>
         </Radio.Group>
         <div className="flex items-center gap-1 text-xs text-gray-500">
           <Switch size="small" checked={ignoreWhitespace} onChange={(v) => { setIgnoreWhitespace(v); setCompared(false); }} />
-          忽略空白
+          {t('devtools.diff.ignoreWhitespace')}
         </div>
         <div className="flex-1" />
-        <Button size="small" icon={<SwapOutlined />} onClick={handleSwap}>交换</Button>
-        <Button size="small" icon={<ClearOutlined />} onClick={handleClear}>清空</Button>
-        <Button type="primary" size="small" icon={<DiffOutlined />} onClick={handleCompare}>比对</Button>
+        <Button size="small" icon={<SwapOutlined />} onClick={handleSwap}>{t('devtools.diff.swap')}</Button>
+        <Button size="small" icon={<ClearOutlined />} onClick={handleClear}>{t('common.actions.clear')}</Button>
+        <Button type="primary" size="small" icon={<DiffOutlined />} onClick={handleCompare}>{t('devtools.diff.compare')}</Button>
       </div>
 
       <div className="flex flex-1 min-h-0 border-b border-gray-200">
         <div className="flex-1 flex flex-col border-r border-gray-200 min-w-0">
           <div className="px-2 py-1 text-[10px] font-bold text-gray-500 bg-red-50 border-b border-gray-100">
-            ◀ 原始文本 (LEFT)
+            ◀ {t('devtools.diff.leftLabel')}
           </div>
           <TextArea
             value={leftText}
             onChange={(e) => { setLeftText(e.target.value); setCompared(false); }}
-            placeholder="粘贴原始文本..."
+            placeholder={t('devtools.diff.leftPlaceholder')}
             className="flex-1 resize-none border-none rounded-none font-mono text-xs"
             style={{ boxShadow: 'none' }}
           />
         </div>
         <div className="flex-1 flex flex-col min-w-0">
           <div className="px-2 py-1 text-[10px] font-bold text-gray-500 bg-green-50 border-b border-gray-100">
-            修改文本 (RIGHT) ▶
+            {t('devtools.diff.rightLabel')} ▶
           </div>
           <TextArea
             value={rightText}
             onChange={(e) => { setRightText(e.target.value); setCompared(false); }}
-            placeholder="粘贴修改后文本..."
+            placeholder={t('devtools.diff.rightPlaceholder')}
             className="flex-1 resize-none border-none rounded-none font-mono text-xs"
             style={{ boxShadow: 'none' }}
           />
@@ -129,7 +136,7 @@ export const DiffLayout: React.FC = () => {
       <div className="flex flex-col min-h-[120px] max-h-[45%] overflow-hidden">
         <div className="flex items-center justify-between px-3 py-1 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center gap-3 text-[10px]">
-            <span className="font-bold text-gray-600">差异结果</span>
+            <span className="font-bold text-gray-600">{t('devtools.diff.resultLabel')}</span>
             {diffResult && (
               <>
                 <span className="text-green-600">+{stats.added}</span>
@@ -139,7 +146,7 @@ export const DiffLayout: React.FC = () => {
             )}
           </div>
           <Button size="small" type="text" icon={<CopyOutlined />} onClick={handleCopyDiff} disabled={!diffResult}>
-            复制差异
+            {t('devtools.diff.copyDiff')}
           </Button>
         </div>
         <DiffResultView diffResult={diffResult} mode={mode} />
@@ -147,4 +154,3 @@ export const DiffLayout: React.FC = () => {
     </div>
   );
 };
-

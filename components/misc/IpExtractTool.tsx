@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Input, Button, Tag, message, Space, Tabs } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { CopyOutlined, DeleteOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import * as ipaddr from 'ipaddr.js';
 
@@ -54,10 +55,8 @@ function classifyIps(ips: string[]): IpClassified {
         const range = addr.range();
         if (PRIVATE_RANGES.has(range)) {
           result.private.push(raw);
-        } else if (range === 'unicast') {
-          result.public.push(raw);
         } else {
-          // broadcast, multicast, etc.
+          // unicast / broadcast / multicast 等
           result.public.push(raw);
         }
         const seg = getCSegment(raw);
@@ -70,12 +69,6 @@ function classifyIps(ips: string[]): IpClassified {
   return result;
 }
 
-/** 复制文本列表 */
-const copyList = (list: string[]) => {
-  if (!list.length) return;
-  navigator.clipboard.writeText(list.join('\n')).then(() => message.success('已复制'));
-};
-
 /** 标签页头 */
 const tabLabel = (label: string, count: number) => (
   <span className="text-xs">
@@ -84,18 +77,19 @@ const tabLabel = (label: string, count: number) => (
 );
 
 export const IpExtractTool: React.FC = () => {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [result, setResult] = useState<IpClassified | null>(null);
   const [activeTab, setActiveTab] = useState('all');
 
   const handleExtract = useCallback(() => {
-    if (!input.trim()) { message.warning('请先输入包含 IP 地址的文本'); return; }
+    if (!input.trim()) { message.warning(t('devtools.misc.ip.inputRequired')); return; }
     const ips = extractIps(input);
-    if (!ips.length) { message.warning('未找到任何 IP 地址'); return; }
+    if (!ips.length) { message.warning(t('devtools.misc.ip.noResults')); return; }
     const classified = classifyIps(ips);
     setResult(classified);
     setActiveTab('all');
-  }, [input]);
+  }, [input, t]);
 
   const currentList = useMemo(() => {
     if (!result) return [];
@@ -117,17 +111,22 @@ export const IpExtractTool: React.FC = () => {
       }));
   }, [result]);
 
+  const handleCopy = useCallback(() => {
+    if (!currentList.length) return;
+    navigator.clipboard.writeText(currentList.join('\n')).then(() => message.success(t('common.feedback.copySuccess')));
+  }, [currentList, t]);
+
   const allTabs = useMemo(() => {
     if (!result) return [];
     const base = [
-      { key: 'all', label: tabLabel('全部', result.all.length) },
-      { key: 'public', label: tabLabel('公网', result.public.length) },
-      { key: 'private', label: tabLabel('内网', result.private.length) },
+      { key: 'all', label: tabLabel(t('devtools.misc.ip.tabs.all'), result.all.length) },
+      { key: 'public', label: tabLabel(t('devtools.misc.ip.tabs.public'), result.public.length) },
+      { key: 'private', label: tabLabel(t('devtools.misc.ip.tabs.private'), result.private.length) },
     ];
     if (result.ipv6.length) base.push({ key: 'ipv6', label: tabLabel('IPv6', result.ipv6.length) });
-    if (result.invalid.length) base.push({ key: 'invalid', label: tabLabel('无效', result.invalid.length) });
+    if (result.invalid.length) base.push({ key: 'invalid', label: tabLabel(t('devtools.misc.ip.tabs.invalid'), result.invalid.length) });
     return [...base, ...segmentTabs];
-  }, [result, segmentTabs]);
+  }, [result, segmentTabs, t]);
 
   return (
     <div className="flex flex-col h-full gap-2 p-3">
@@ -135,23 +134,23 @@ export const IpExtractTool: React.FC = () => {
       <div className="flex items-center gap-4 text-xs text-gray-600 flex-wrap">
         <div className="flex-1" />
         <Space size={4}>
-          <Button size="small" type="primary" icon={<ThunderboltOutlined />} onClick={handleExtract}>提取</Button>
-          <Button size="small" icon={<CopyOutlined />} onClick={() => copyList(currentList)} disabled={!currentList.length}>复制</Button>
-          <Button size="small" icon={<DeleteOutlined />} onClick={() => { setInput(''); setResult(null); }}>清空</Button>
+          <Button size="small" type="primary" icon={<ThunderboltOutlined />} onClick={handleExtract}>{t('common.actions.extract')}</Button>
+          <Button size="small" icon={<CopyOutlined />} onClick={handleCopy} disabled={!currentList.length}>{t('common.actions.copy')}</Button>
+          <Button size="small" icon={<DeleteOutlined />} onClick={() => { setInput(''); setResult(null); }}>{t('common.actions.clear')}</Button>
         </Space>
       </div>
 
       <div className="flex flex-1 gap-2 min-h-0">
         {/* 输入区 */}
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="text-[10px] font-bold text-gray-500 mb-1">输入文本</div>
+          <div className="text-[10px] font-bold text-gray-500 mb-1">{t('devtools.misc.ip.inputLabel')}</div>
           <TextArea value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder="粘贴包含 IP 地址的文本（日志、扫描结果等）..."
+            placeholder={t('devtools.misc.ip.inputPlaceholder')}
             className="flex-1 resize-none font-mono text-xs" />
         </div>
         {/* 结果区 */}
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="text-[10px] font-bold text-gray-500 mb-1">提取结果</div>
+          <div className="text-[10px] font-bold text-gray-500 mb-1">{t('devtools.misc.ip.outputLabel')}</div>
           {result ? (
             <div className="flex-1 flex flex-col border border-gray-200 rounded overflow-hidden bg-gray-50">
               <Tabs size="small" activeKey={activeTab} onChange={setActiveTab} items={allTabs}
@@ -160,11 +159,10 @@ export const IpExtractTool: React.FC = () => {
                 className="flex-1 resize-none font-mono text-xs border-0 bg-gray-50 !rounded-none" />
             </div>
           ) : (
-            <TextArea readOnly placeholder="提取的 IP 地址将显示在这里..." className="flex-1 resize-none font-mono text-xs bg-gray-50" />
+            <TextArea readOnly placeholder={t('devtools.misc.ip.outputPlaceholder')} className="flex-1 resize-none font-mono text-xs bg-gray-50" />
           )}
         </div>
       </div>
     </div>
   );
 };
-

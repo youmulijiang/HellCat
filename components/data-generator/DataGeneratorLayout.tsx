@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button, InputNumber, Select, Table, Tag, message, Tabs } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { CopyOutlined, ThunderboltOutlined, DeleteOutlined } from '@ant-design/icons';
-import { GENERATORS, getCategories, batchGenerate, type GeneratorDef } from './generators';
+import { GENERATORS, getCategories, getCategoryLabelKey, batchGenerate } from './generators';
 
 interface GeneratedRow {
   key: string;
@@ -15,6 +16,7 @@ interface GeneratedRow {
  * 渗透测试常用假数据生成器
  */
 export const DataGeneratorLayout: React.FC = () => {
+  const { t } = useTranslation();
   const categories = getCategories();
   const [activeCategory, setActiveCategory] = useState(categories[0]);
   const [selectedGenerator, setSelectedGenerator] = useState<string>(
@@ -56,33 +58,33 @@ export const DataGeneratorLayout: React.FC = () => {
     const rows: GeneratedRow[] = data.map((value, i) => ({
       key: `${Date.now()}-${i}`,
       index: i + 1,
-      type: gen.label,
+      type: t(`devtools.dataGenerator.generators.${gen.labelKey}`),
       value,
     }));
     setResults(rows);
-  }, [selectedGenerator, count]);
+  }, [selectedGenerator, count, t]);
 
   const handleCopyAll = useCallback(() => {
     if (results.length === 0) return;
     const text = results.map((r) => r.value).join('\n');
-    navigator.clipboard.writeText(text).then(() => message.success('已复制全部数据'));
-  }, [results]);
+    navigator.clipboard.writeText(text).then(() => message.success(t('devtools.dataGenerator.messages.copiedAll')));
+  }, [results, t]);
 
   const handleCopyOne = useCallback((value: string) => {
-    navigator.clipboard.writeText(value).then(() => message.success('已复制'));
-  }, []);
+    navigator.clipboard.writeText(value).then(() => message.success(t('common.feedback.copySuccess')));
+  }, [t]);
 
   const columns = [
     { title: '#', dataIndex: 'index', width: 50 },
-    { title: '类型', dataIndex: 'type', width: 100, render: (t: string) => <Tag>{t}</Tag> },
+    { title: t('devtools.dataGenerator.columns.type'), dataIndex: 'type', width: 100, render: (type: string) => <Tag>{type}</Tag> },
     {
-      title: '数据',
+      title: t('devtools.dataGenerator.columns.data'),
       dataIndex: 'value',
       ellipsis: true,
       render: (v: string) => <span className="font-mono text-xs select-all">{v}</span>,
     },
     {
-      title: '操作',
+      title: t('devtools.dataGenerator.columns.actions'),
       width: 60,
       render: (_: unknown, record: GeneratedRow) => (
         <Button
@@ -97,7 +99,7 @@ export const DataGeneratorLayout: React.FC = () => {
 
   const generatorOptions = currentGenerators.map((g) => ({
     value: g.key,
-    label: g.label,
+    label: t(`devtools.dataGenerator.generators.${g.labelKey}`),
   }));
 
   return (
@@ -105,7 +107,7 @@ export const DataGeneratorLayout: React.FC = () => {
       {/* 顶部标题 */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 bg-gray-50">
         <span className="text-xs font-bold text-gray-600 tracking-wide">DATA GENERATOR</span>
-        <span className="text-[10px] text-gray-400">渗透测试数据生成</span>
+        <span className="text-[10px] text-gray-400">{t('devtools.dataGenerator.subtitle')}</span>
       </div>
 
       {/* 分类标签 */}
@@ -115,7 +117,7 @@ export const DataGeneratorLayout: React.FC = () => {
         size="small"
         className="px-2"
         style={{ marginBottom: 0 }}
-        items={categories.map((c) => ({ key: c, label: c }))}
+        items={categories.map((c) => ({ key: c, label: t(getCategoryLabelKey(c)) }))}
       />
 
       {/* 工具栏 */}
@@ -134,7 +136,7 @@ export const DataGeneratorLayout: React.FC = () => {
           onChange={(v) => setCount(v ?? 10)}
           size="small"
           className="w-20"
-          addonAfter="条"
+          addonAfter={t('devtools.dataGenerator.rowsUnit')}
         />
         <Button
           type="primary"
@@ -142,13 +144,13 @@ export const DataGeneratorLayout: React.FC = () => {
           icon={<ThunderboltOutlined />}
           onClick={handleGenerate}
         >
-          生成
+          {t('devtools.dataGenerator.generate')}
         </Button>
         <Button size="small" icon={<CopyOutlined />} onClick={handleCopyAll} disabled={!results.length}>
-          复制全部
+          {t('devtools.dataGenerator.copyAll')}
         </Button>
         <Button size="small" icon={<DeleteOutlined />} onClick={() => setResults([])} disabled={!results.length}>
-          清空
+          {t('common.actions.clear')}
         </Button>
       </div>
 
@@ -160,10 +162,9 @@ export const DataGeneratorLayout: React.FC = () => {
           size="small"
           pagination={false}
           scroll={{ x: '100%', y: tableScrollY }}
-          locale={{ emptyText: '点击「生成」按钮生成测试数据' }}
+          locale={{ emptyText: t('devtools.dataGenerator.emptyHint') }}
         />
       </div>
     </div>
   );
 };
-

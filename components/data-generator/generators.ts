@@ -77,53 +77,59 @@ function generateBankCard(): string {
 /** 数据生成器定义 */
 export interface GeneratorDef {
   key: string;
-  label: string;
+  /** i18n key（devtools.dataGenerator.generators.*） */
+  labelKey: string;
   category: string;
   generate: () => string;
 }
 
 export const GENERATORS: GeneratorDef[] = [
   // 个人信息
-  { key: 'id-card', label: '身份证号', category: '个人信息', generate: generateChineseIdCard },
-  { key: 'name', label: '中文姓名', category: '个人信息', generate: () => faker.person.fullName() },
-  { key: 'phone', label: '手机号', category: '个人信息', generate: generateChinesePhone },
-  { key: 'email', label: '邮箱地址', category: '个人信息', generate: () => faker.internet.email() },
-  { key: 'username', label: '用户名', category: '个人信息', generate: () => faker.internet.username() },
-  { key: 'password', label: '密码', category: '个人信息', generate: () => faker.internet.password({ length: 16 }) },
-  { key: 'address', label: '地址', category: '个人信息', generate: () => faker.location.streetAddress({ useFullAddress: true }) },
-  { key: 'company', label: '公司名称', category: '个人信息', generate: () => faker.company.name() },
+  { key: 'id-card', labelKey: 'idCard', category: 'person', generate: generateChineseIdCard },
+  { key: 'name', labelKey: 'name', category: 'person', generate: () => faker.person.fullName() },
+  { key: 'phone', labelKey: 'phone', category: 'person', generate: generateChinesePhone },
+  { key: 'email', labelKey: 'email', category: 'person', generate: () => faker.internet.email() },
+  { key: 'username', labelKey: 'username', category: 'person', generate: () => faker.internet.username() },
+  { key: 'password', labelKey: 'password', category: 'person', generate: () => faker.internet.password({ length: 16 }) },
+  { key: 'address', labelKey: 'address', category: 'person', generate: () => faker.location.streetAddress({ useFullAddress: true }) },
+  { key: 'company', labelKey: 'company', category: 'person', generate: () => faker.company.name() },
 
   // 网络信息
-  { key: 'ipv4', label: 'IPv4 地址', category: '网络信息', generate: () => faker.internet.ipv4() },
-  { key: 'ipv4-private', label: '内网 IPv4', category: '网络信息', generate: () => faker.internet.ipv4({ network: 'private-a' }) },
-  { key: 'ipv6', label: 'IPv6 地址', category: '网络信息', generate: () => faker.internet.ipv6() },
-  { key: 'mac', label: 'MAC 地址', category: '网络信息', generate: () => faker.internet.mac() },
-  { key: 'url', label: 'URL', category: '网络信息', generate: () => faker.internet.url() },
-  { key: 'domain', label: '域名', category: '网络信息', generate: () => faker.internet.domainName() },
-  { key: 'user-agent', label: 'User-Agent', category: '网络信息', generate: () => faker.internet.userAgent() },
-  { key: 'port', label: '端口号', category: '网络信息', generate: () => String(faker.internet.port()) },
+  { key: 'ipv4', labelKey: 'ipv4', category: 'network', generate: () => faker.internet.ipv4() },
+  { key: 'ipv4-private', labelKey: 'ipv4Private', category: 'network', generate: () => faker.internet.ipv4({ network: 'private-a' }) },
+  { key: 'ipv6', labelKey: 'ipv6', category: 'network', generate: () => faker.internet.ipv6() },
+  { key: 'mac', labelKey: 'mac', category: 'network', generate: () => faker.internet.mac() },
+  { key: 'url', labelKey: 'url', category: 'network', generate: () => faker.internet.url() },
+  { key: 'domain', labelKey: 'domain', category: 'network', generate: () => faker.internet.domainName() },
+  { key: 'user-agent', labelKey: 'userAgent', category: 'network', generate: () => faker.internet.userAgent() },
+  { key: 'port', labelKey: 'port', category: 'network', generate: () => String(faker.internet.port()) },
 
   // 金融信息
-  { key: 'bank-card', label: '银行卡号', category: '金融信息', generate: generateBankCard },
-  { key: 'credit-card', label: '信用卡号', category: '金融信息', generate: () => faker.finance.creditCardNumber() },
-  { key: 'credit-card-cvv', label: 'CVV', category: '金融信息', generate: () => faker.finance.creditCardCVV() },
-  { key: 'iban', label: 'IBAN', category: '金融信息', generate: () => faker.finance.iban() },
-  { key: 'bitcoin', label: 'BTC 地址', category: '金融信息', generate: () => faker.finance.bitcoinAddress() },
-  { key: 'ethereum', label: 'ETH 地址', category: '金融信息', generate: () => faker.finance.ethereumAddress() },
-  { key: 'amount', label: '金额', category: '金融信息', generate: () => faker.finance.amount({ min: 1, max: 100000, dec: 2, symbol: '¥' }) },
+  { key: 'bank-card', labelKey: 'bankCard', category: 'finance', generate: generateBankCard },
+  { key: 'credit-card', labelKey: 'creditCard', category: 'finance', generate: () => faker.finance.creditCardNumber() },
+  { key: 'credit-card-cvv', labelKey: 'cvv', category: 'finance', generate: () => faker.finance.creditCardCVV() },
+  { key: 'iban', labelKey: 'iban', category: 'finance', generate: () => faker.finance.iban() },
+  { key: 'bitcoin', labelKey: 'btcAddress', category: 'finance', generate: () => faker.finance.bitcoinAddress() },
+  { key: 'ethereum', labelKey: 'ethAddress', category: 'finance', generate: () => faker.finance.ethereumAddress() },
+  { key: 'amount', labelKey: 'amount', category: 'finance', generate: () => faker.finance.amount({ min: 1, max: 100000, dec: 2, symbol: '¥' }) },
 
   // 其他
-  { key: 'uuid', label: 'UUID', category: '其他', generate: () => faker.string.uuid() },
-  { key: 'jwt', label: 'JWT Token', category: '其他', generate: () => faker.internet.jwt() },
-  { key: 'color-hex', label: '颜色 HEX', category: '其他', generate: () => faker.color.rgb() },
-  { key: 'date', label: '日期', category: '其他', generate: () => faker.date.past().toISOString().split('T')[0] },
-  { key: 'datetime', label: '日期时间', category: '其他', generate: () => faker.date.past().toISOString() },
-  { key: 'lorem', label: '随机文本', category: '其他', generate: () => faker.lorem.sentence() },
+  { key: 'uuid', labelKey: 'uuid', category: 'other', generate: () => faker.string.uuid() },
+  { key: 'jwt', labelKey: 'jwt', category: 'other', generate: () => faker.internet.jwt() },
+  { key: 'color-hex', labelKey: 'colorHex', category: 'other', generate: () => faker.color.rgb() },
+  { key: 'date', labelKey: 'date', category: 'other', generate: () => faker.date.past().toISOString().split('T')[0] },
+  { key: 'datetime', labelKey: 'datetime', category: 'other', generate: () => faker.date.past().toISOString() },
+  { key: 'lorem', labelKey: 'lorem', category: 'other', generate: () => faker.lorem.sentence() },
 ];
 
 /** 获取所有分类 */
 export function getCategories(): string[] {
   return [...new Set(GENERATORS.map((g) => g.category))];
+}
+
+/** 分类的 i18n key 前缀映射 */
+export function getCategoryLabelKey(category: string): string {
+  return `devtools.dataGenerator.categories.${category}`;
 }
 
 /** 批量生成数据 */

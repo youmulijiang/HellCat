@@ -1,6 +1,7 @@
 import CryptoJS from 'crypto-js';
 import JSEncrypt from 'jsencrypt';
 import { SignJWT, jwtVerify, decodeJwt, decodeProtectedHeader } from 'jose';
+import i18n from '@/lib/i18n';
 
 /** 工具分类 */
 export type CodecCategory = 'encoding' | 'hash' | 'symmetric' | 'asymmetric' | 'jwt';
@@ -171,7 +172,7 @@ function textToSecret(secret: string): Uint8Array {
 const jwtTool: CodecTool = {
   key: 'jwt', label: 'JWT (HS256)', category: 'jwt', needKey: true,
   encode: async (input, key = '') => {
-    if (!key) throw new Error('请输入 Secret Key 用于签名');
+    if (!key) throw new Error(i18n.t('devtools.codec.errors.secretKeyRequired'));
     const payload = JSON.parse(input);
     const secret = textToSecret(key);
     const token = await new SignJWT(payload)
@@ -199,12 +200,12 @@ const jwtTool: CodecTool = {
       try {
         const secret = textToSecret(key);
         const { protectedHeader } = await jwtVerify(token, secret);
-        parts.push('', '=== SIGNATURE ===', `✅ 签名验证通过 (alg: ${protectedHeader.alg})`);
+        parts.push('', '=== SIGNATURE ===', `✅ ${i18n.t('devtools.codec.jwt.signatureVerified', { alg: protectedHeader.alg })}`);
       } catch (err) {
-        parts.push('', '=== SIGNATURE ===', `❌ 签名验证失败: ${err instanceof Error ? err.message : String(err)}`);
+        parts.push('', '=== SIGNATURE ===', `❌ ${i18n.t('devtools.codec.jwt.signatureFailed', { message: err instanceof Error ? err.message : String(err) })}`);
       }
     } else {
-      parts.push('', '=== SIGNATURE ===', '⚠️ 未提供 Secret Key，跳过签名验证');
+      parts.push('', '=== SIGNATURE ===', `⚠️ ${i18n.t('devtools.codec.jwt.skippedVerification')}`);
     }
 
     return parts.join('\n');
@@ -214,7 +215,7 @@ const jwtTool: CodecTool = {
 const jwtHs384Tool: CodecTool = {
   key: 'jwt-hs384', label: 'JWT (HS384)', category: 'jwt', needKey: true,
   encode: async (input, key = '') => {
-    if (!key) throw new Error('请输入 Secret Key 用于签名');
+    if (!key) throw new Error(i18n.t('devtools.codec.errors.secretKeyRequired'));
     const payload = JSON.parse(input);
     const secret = textToSecret(key);
     const token = await new SignJWT(payload)
@@ -235,12 +236,12 @@ const jwtHs384Tool: CodecTool = {
       try {
         const secret = textToSecret(key);
         const { protectedHeader } = await jwtVerify(token, secret);
-        parts.push('', '=== SIGNATURE ===', `✅ 签名验证通过 (alg: ${protectedHeader.alg})`);
+        parts.push('', '=== SIGNATURE ===', `✅ ${i18n.t('devtools.codec.jwt.signatureVerified', { alg: protectedHeader.alg })}`);
       } catch (err) {
-        parts.push('', '=== SIGNATURE ===', `❌ 签名验证失败: ${err instanceof Error ? err.message : String(err)}`);
+        parts.push('', '=== SIGNATURE ===', `❌ ${i18n.t('devtools.codec.jwt.signatureFailed', { message: err instanceof Error ? err.message : String(err) })}`);
       }
     } else {
-      parts.push('', '=== SIGNATURE ===', '⚠️ 未提供 Secret Key，跳过签名验证');
+      parts.push('', '=== SIGNATURE ===', `⚠️ ${i18n.t('devtools.codec.jwt.skippedVerification')}`);
     }
     return parts.join('\n');
   },
@@ -249,7 +250,7 @@ const jwtHs384Tool: CodecTool = {
 const jwtHs512Tool: CodecTool = {
   key: 'jwt-hs512', label: 'JWT (HS512)', category: 'jwt', needKey: true,
   encode: async (input, key = '') => {
-    if (!key) throw new Error('请输入 Secret Key 用于签名');
+    if (!key) throw new Error(i18n.t('devtools.codec.errors.secretKeyRequired'));
     const payload = JSON.parse(input);
     const secret = textToSecret(key);
     const token = await new SignJWT(payload)
@@ -270,12 +271,12 @@ const jwtHs512Tool: CodecTool = {
       try {
         const secret = textToSecret(key);
         const { protectedHeader } = await jwtVerify(token, secret);
-        parts.push('', '=== SIGNATURE ===', `✅ 签名验证通过 (alg: ${protectedHeader.alg})`);
+        parts.push('', '=== SIGNATURE ===', `✅ ${i18n.t('devtools.codec.jwt.signatureVerified', { alg: protectedHeader.alg })}`);
       } catch (err) {
-        parts.push('', '=== SIGNATURE ===', `❌ 签名验证失败: ${err instanceof Error ? err.message : String(err)}`);
+        parts.push('', '=== SIGNATURE ===', `❌ ${i18n.t('devtools.codec.jwt.signatureFailed', { message: err instanceof Error ? err.message : String(err) })}`);
       }
     } else {
-      parts.push('', '=== SIGNATURE ===', '⚠️ 未提供 Secret Key，跳过签名验证');
+      parts.push('', '=== SIGNATURE ===', `⚠️ ${i18n.t('devtools.codec.jwt.skippedVerification')}`);
     }
     return parts.join('\n');
   },
@@ -283,12 +284,12 @@ const jwtHs512Tool: CodecTool = {
 
 // ==================== 导出 ====================
 
-export const CODEC_CATEGORIES: { key: CodecCategory; label: string }[] = [
-  { key: 'encoding', label: '编码/解码' },
-  { key: 'hash', label: '哈希摘要' },
-  { key: 'symmetric', label: '对称加密' },
-  { key: 'asymmetric', label: '非对称加密' },
-  { key: 'jwt', label: 'JWT' },
+export const CODEC_CATEGORIES: { key: CodecCategory; labelKey: string }[] = [
+  { key: 'encoding', labelKey: 'devtools.codec.categories.encoding' },
+  { key: 'hash', labelKey: 'devtools.codec.categories.hash' },
+  { key: 'symmetric', labelKey: 'devtools.codec.categories.symmetric' },
+  { key: 'asymmetric', labelKey: 'devtools.codec.categories.asymmetric' },
+  { key: 'jwt', labelKey: 'devtools.codec.categories.jwt' },
 ];
 
 export const ALL_CODEC_TOOLS: CodecTool[] = [
