@@ -19,10 +19,17 @@ const SECTION_COLORS: Record<string, string> = {
   emails: 'green',
   idcards: 'volcano',
   jwts: 'purple',
+  cookies: 'magenta',
   credentials: 'magenta',
   idKeys: 'gold',
+  companies: 'volcano',
   urls: 'lime',
+  githubUrls: 'purple',
   jsFiles: 'default',
+  vueFiles: 'geekblue',
+  imageFiles: 'default',
+  docFiles: 'default',
+  moduleFiles: 'default',
 };
 
 export const InfoCollectPanel: React.FC = () => {
@@ -38,6 +45,8 @@ export const InfoCollectPanel: React.FC = () => {
       setLoading(true);
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
       if (!tab?.id) return;
+      // 先触发按需扫描（content script 默认不自动扫描，打开面板才开始）
+      await browser.tabs.sendMessage(tab.id, { action: 'startInfoCollect' }).catch(() => undefined);
       const response = await browser.tabs.sendMessage(tab.id, {
         action: 'getInfoCollectResults',
       });
