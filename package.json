@@ -1,8 +1,8 @@
 {
-  "name": "wxt-react-starter",
-  "description": "manifest.json description",
+  "name": "hellcat-extension",
+  "description": "浏览器安全测试工具箱",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -12,21 +12,21 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint .",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@faker-js/faker": "^10.3.0",
     "@tanstack/react-query": "^5.90.21",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
     "@uiw/react-md-editor": "^4.0.11",
     "antd": "^6.3.1",
     "axios": "^1.13.6",
     "crypto-js": "^4.2.0",
     "dexie": "^4.3.0",
     "diff": "^8.0.3",
-    "eslint": "^10.0.3",
+    "dompurify": "^3.4.17",
     "fuse.js": "^7.1.0",
     "html2pdf.js": "^0.14.0",
     "i18next": "^26.0.3",
@@ -41,17 +41,21 @@
     "react-hook-form": "^7.71.2",
     "react-i18next": "^17.0.2",
     "tailwindcss": "^4.2.1",
-    "vitest": "^4.0.18",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/crypto-js": "^4.2.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.1.5",
+    "eslint": "^10.0.3",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^4.0.18",
     "wxt": "^0.20.18"
   }
 }

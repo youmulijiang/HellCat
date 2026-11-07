@@ -84,6 +84,29 @@ pnpm build
 在浏览器中加载 unpacked 扩展程序，即可使用。
 > 建议使用chrome浏览器加载插件，其他浏览器可能无法加载或存在兼容性问题。
 
+## 权限说明
+
+本插件为安全测试工具，需要较宽的权限才能工作，加载前请知悉：
+
+| 权限 | 用途 |
+|---|---|
+| `debugger` | 抓包拦截、重放、WebSocket 监控与截图（Chrome DevTools Protocol） |
+| `cookies` / `tabs` / `activeTab` | Popup 面板的 Cookie 管理、页面信息收集与 URL 多开 |
+| `proxy` | 代理配置切换 |
+| `scripting` / `storage` / `alarms` | 脚本注入、配置持久化、幻灯片定时轮播 |
+| `<all_urls>`（host_permissions） | 对任意目标站点进行信息收集、抓包与注入 |
+
+信息收集为**按需触发**：仅在打开 Popup 的信息收集面板时才开始扫描当前页面。
+抓包/拦截/WS 监控等功能也只在对应面板显式开启后生效。
+
+## 开发
+
+```bash
+pnpm compile   # TypeScript 类型检查
+pnpm test      # 单元测试（vitest）
+pnpm lint      # ESLint
+```
+
 ## 声明
 
 - 建议在**已授权**的目标环境中使用
